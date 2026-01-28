@@ -38,6 +38,18 @@ struct AudioProcess: Identifiable, Hashable, Sendable {
 }
 
 extension AudioProcess {
+    static func systemAudio() -> AudioProcess {
+        AudioProcess(
+            id: -1,
+            kind: .process,
+            name: "System Audio",
+            audioActive: true,
+            bundleID: nil,
+            bundleURL: nil,
+            objectID: .system
+        )
+    }
+
     var icon: NSImage {
         guard let bundleURL = bundleURL else { return kind.defaultIcon }
         let image = NSWorkspace.shared.icon(forFile: bundleURL.path)

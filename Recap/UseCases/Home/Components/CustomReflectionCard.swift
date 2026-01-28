@@ -9,7 +9,6 @@ import SwiftUI
 
 struct CustomReflectionCard: View {
     let containerWidth: CGFloat
-    @ObservedObject private var appSelectionViewModel: AppSelectionViewModel
     let isRecording: Bool
     let recordingDuration: TimeInterval
     let canStartRecording: Bool
@@ -17,14 +16,12 @@ struct CustomReflectionCard: View {
     
     init(
         containerWidth: CGFloat, 
-        appSelectionViewModel: AppSelectionViewModel,
         isRecording: Bool,
         recordingDuration: TimeInterval,
         canStartRecording: Bool,
         onToggleRecording: @escaping () -> Void
     ) {
         self.containerWidth = containerWidth
-        self.appSelectionViewModel = appSelectionViewModel
         self.isRecording = isRecording
         self.recordingDuration = recordingDuration
         self.canStartRecording = canStartRecording
@@ -40,8 +37,22 @@ struct CustomReflectionCard: View {
         )
         .overlay(
             HStack {
-                AppSelectionButton(viewModel: appSelectionViewModel)
-                    .padding(.leading, UIConstants.Spacing.cardSpacing)
+                HStack(spacing: 8) {
+                    Image(systemName: "speaker.wave.2.fill")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(UIConstants.Colors.textPrimary)
+                    Text("System Audio")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(UIConstants.Colors.textPrimary)
+                    Text("ON")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(UIConstants.Colors.audioGreen)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(UIConstants.Colors.cardSecondaryBackground)
+                        .clipShape(Capsule())
+                }
+                .padding(.leading, UIConstants.Spacing.cardSpacing)
                 
                 Spacer()
                 
@@ -55,8 +66,5 @@ struct CustomReflectionCard: View {
             }
         )
         .animation(.easeInOut(duration: 0.3), value: isRecording)
-        .onAppear {
-            appSelectionViewModel.refreshAvailableApps()
-        }
     }
 }

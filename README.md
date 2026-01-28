@@ -51,14 +51,14 @@ Recap is an open-source, privacy-focused, macOS-native project to help you summa
 ## Features
 - **Meeting Detection**: Automatically detects meetings in Microsoft Teams, Zoom, Google Meet, and more using macOS ScreenCaptureKit (Coming Soon!)
 - **Audio Recording**: Records system audio and optionally microphone input
-- **Local Processing**: Uses WhisperKit for transcription and Ollama/(optionally, OpenRouter) for summarization
+- **Local Processing**: Uses WhisperKit for transcription and Ollama / OpenRouter / **Apple Intelligence** for summarization
 - **Privacy First**: No data leaves your device unless you choose to share it
 - **Open Source**: Fully transparent codebase for community contributions
 
 
 #### Under the hood
 -  Native Core Audio taps, AVAudioEngine, driver-free system audio capture  
--  WhisperKit (MLX) (local transcription), Ollama/OpenRouter (summarization)  
+-  WhisperKit (MLX) (local transcription), Ollama / OpenRouter / Apple Foundation Models (summarization)  
 -  Swift + SwiftUI
 
 ### Roadmap:
@@ -77,6 +77,7 @@ Right now, Recap is more of a POC of what I am trying to make. It records system
 **LLM Options:**
 - **Ollama** (recommended): Complete privacy - everything stays on your device
 - **OpenRouter**: Cloud-based option if you lack local compute capacity, but data leaves your device
+- **Apple Intelligence** (macOS 26+): On-device summarization via the Foundation Models framework; no extra install, requires Apple Intelligence enabled in System Settings
 
 ## System Requirements
 
@@ -104,6 +105,18 @@ Right now, Recap is more of a POC of what I am trying to make. It records system
 
 </details>
 
+<details>
+  <summary>Apple Intelligence (macOS 26+, on-device)</summary>
+
+| Component | Requirement |
+|-----------|-------------|
+| **macOS** | 26.0 or later |
+| **Device** | Mac with Apple Intelligence support |
+| **Settings** | Apple Intelligence enabled in System Settings |
+| **Build** | Xcode 26+ / macOS 26 SDK required to compile the Apple Intelligence provider |
+
+When the Foundation Models framework is unavailable (e.g. older Xcode), the "Apple Intelligence" option is still shown but reports as unavailable. To build with Apple Intelligence support, use Xcode 26 and the macOS 26 SDK.
+</details>
 
 > **Note**: Intel Macs are not supported. Use it at your own risk.
 

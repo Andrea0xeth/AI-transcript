@@ -9,6 +9,7 @@ final class MenuBarPanelManager: MenuBarPanelManagerType, ObservableObject {
     var settingsPanel: SlidingPanel?
     var summaryPanel: SlidingPanel?
     var previousRecapsWindowManager: RecapsWindowManager?
+    var expandedWindowManager: ExpandedWindowManager?
 
     var isVisible = false
     var isSettingsVisible = false
@@ -56,6 +57,7 @@ final class MenuBarPanelManager: MenuBarPanelManagerType, ObservableObject {
         self.userPreferencesRepository = userPreferencesRepository
         self.meetingDetectionService = meetingDetectionService
         self.previousRecapsViewModel = previousRecapsViewModel
+        self.expandedWindowManager = ExpandedWindowManager()
         setupDelegates()
     }
     
@@ -169,6 +171,16 @@ final class MenuBarPanelManager: MenuBarPanelManagerType, ObservableObject {
             self?.isVisible = false
         }
     }
+
+    func hidePanelAndSidePanels() {
+        hidePanel()
+        hideAllSidePanels()
+    }
+
+    func openExpandedWindow() {
+        hidePanelAndSidePanels()
+        expandedWindowManager?.showExpandedWindow(recapViewModel: recapViewModel) { }
+    }
     
     private func hideAllSidePanels() {
         if isSettingsVisible { hideSettingsPanel() }
@@ -199,6 +211,10 @@ extension MenuBarPanelManager: StatusBarDelegate {
         } else {
             showPanel()
         }
+    }
+
+    func openExpandedWindowRequested() {
+        openExpandedWindow()
     }
     
     func quitRequested() {

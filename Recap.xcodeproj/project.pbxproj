@@ -139,7 +139,6 @@
 				A73F0CBD2E350D2700B07BB2 /* WhisperKit in Frameworks */,
 				A73F0CBF2E350D2700B07BB2 /* whisperkit-cli in Frameworks */,
 				A743B08B2E3D479600785BFF /* MarkdownUI in Frameworks */,
-				A7C35B112E3DFD2700F9261F /* Mockable in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -196,7 +195,6 @@
 				A73F0CBE2E350D2700B07BB2 /* whisperkit-cli */,
 				A7BF55C82E38BF40003536FB /* Ollama */,
 				A743B08A2E3D479600785BFF /* MarkdownUI */,
-				A7C35B102E3DFD2700F9261F /* Mockable */,
 			);
 			productName = Recap;
 			productReference = A72106522E3016590073C515 /* Recap.app */;
@@ -461,7 +459,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = dev.rawa.Recap;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited) MOCKING";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 			};

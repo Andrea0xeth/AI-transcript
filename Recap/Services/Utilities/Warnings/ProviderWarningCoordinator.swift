@@ -8,6 +8,7 @@ final class ProviderWarningCoordinator {
     
     private let ollamaWarningId = "ollama_connectivity"
     private let openRouterWarningId = "openrouter_connectivity"
+    private let appleIntelligenceWarningId = "apple_intelligence_connectivity"
     
     init(warningManager: any WarningManagerType, llmService: LLMServiceType) {
         self.warningManager = warningManager
@@ -32,23 +33,46 @@ final class ProviderWarningCoordinator {
             return
         }
         
-        Publishers.CombineLatest(
-            ollamaProvider.availabilityPublisher,
-            openRouterProvider.availabilityPublisher
-        )
-        .sink { [weak self] ollamaAvailable, openRouterAvailable in
-            Task { @MainActor in
-                await self?.updateProviderWarnings(
-                    ollamaAvailable: ollamaAvailable,
-                    openRouterAvailable: openRouterAvailable
-                )
+        if let appleProvider = llmService.availableProviders.first(where: { $0.name == "Apple Intelligence" }) {
+            Publishers.CombineLatest3(
+                ollamaProvider.availabilityPublisher,
+                openRouterProvider.availabilityPublisher,
+                appleProvider.availabilityPublisher
+            )
+            .sink { [weak self] ollamaAvailable, openRouterAvailable, appleAvailable in
+                Task { @MainActor in
+                    await self?.updateProviderWarnings(
+                        ollamaAvailable: ollamaAvailable,
+                        openRouterAvailable: openRouterAvailable,
+                        appleIntelligenceAvailable: appleAvailable
+                    )
+                }
             }
+            .store(in: &cancellables)
+        } else {
+            Publishers.CombineLatest(
+                ollamaProvider.availabilityPublisher,
+                openRouterProvider.availabilityPublisher
+            )
+            .sink { [weak self] ollamaAvailable, openRouterAvailable in
+                Task { @MainActor in
+                    await self?.updateProviderWarnings(
+                        ollamaAvailable: ollamaAvailable,
+                        openRouterAvailable: openRouterAvailable,
+                        appleIntelligenceAvailable: false
+                    )
+                }
+            }
+            .store(in: &cancellables)
         }
-        .store(in: &cancellables)
     }
     
     @MainActor
-    private func updateProviderWarnings(ollamaAvailable: Bool, openRouterAvailable: Bool) async {
+    private func updateProviderWarnings(
+        ollamaAvailable: Bool,
+        openRouterAvailable: Bool,
+        appleIntelligenceAvailable: Bool = false
+    ) async {
         do {
             let preferences = try await llmService.getUserPreferences()
             let selectedProvider = preferences.selectedProvider
@@ -57,14 +81,22 @@ final class ProviderWarningCoordinator {
             case .ollama:
                 handleOllamaWarning(isAvailable: ollamaAvailable)
                 warningManager.removeWarning(withId: openRouterWarningId)
+                warningManager.removeWarning(withId: appleIntelligenceWarningId)
                 
             case .openRouter:
                 handleOpenRouterWarning(isAvailable: openRouterAvailable)
                 warningManager.removeWarning(withId: ollamaWarningId)
+                warningManager.removeWarning(withId: appleIntelligenceWarningId)
+                
+            case .appleIntelligence:
+                handleAppleIntelligenceWarning(isAvailable: appleIntelligenceAvailable)
+                warningManager.removeWarning(withId: ollamaWarningId)
+                warningManager.removeWarning(withId: openRouterWarningId)
             }
         } catch {
             warningManager.removeWarning(withId: ollamaWarningId)
             warningManager.removeWarning(withId: openRouterWarningId)
+            warningManager.removeWarning(withId: appleIntelligenceWarningId)
         }
     }
     
@@ -94,6 +126,22 @@ final class ProviderWarningCoordinator {
                 title: "OpenRouter Unavailable",
                 message: "Cannot connect to OpenRouter. Check your internet connection and API key.",
                 icon: "network.slash",
+                severity: .warning
+            )
+            warningManager.updateWarning(warning)
+        }
+    }
+    
+    @MainActor
+    private func handleAppleIntelligenceWarning(isAvailable: Bool) {
+        if isAvailable {
+            warningManager.removeWarning(withId: appleIntelligenceWarningId)
+        } else {
+            let warning = WarningItem(
+                id: appleIntelligenceWarningId,
+                title: "Apple Intelligence Unavailable",
+                message: "Requires macOS 26+ and Apple Intelligence enabled in System Settings.",
+                icon: "brain",
                 severity: .warning
             )
             warningManager.updateWarning(warning)

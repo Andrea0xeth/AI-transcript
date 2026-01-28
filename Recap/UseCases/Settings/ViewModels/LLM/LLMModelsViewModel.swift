@@ -62,8 +62,9 @@ final class LLMModelsViewModel: ObservableObject, LLMModelsViewModelType {
         llmService.providerAvailabilityPublisher
             .sink { [weak self] isAvailable in
                 self?.isProviderAvailable = isAvailable
-                self?.providerStatus = .ollama(isAvailable: isAvailable)
-                
+                Task { @MainActor in
+                    await self?.updateProviderStatus(globalAvailable: isAvailable)
+                }
                 if isAvailable {
                     Task {
                         await self?.refreshModels()
@@ -73,8 +74,25 @@ final class LLMModelsViewModel: ObservableObject, LLMModelsViewModelType {
             .store(in: &cancellables)
     }
     
+    private func updateProviderStatus(globalAvailable: Bool) async {
+        guard let preferences = try? await userPreferencesRepository.getOrCreatePreferences() else {
+            providerStatus = .ollama(isAvailable: false)
+            return
+        }
+        switch preferences.selectedProvider {
+        case .ollama:
+            providerStatus = .ollama(isAvailable: globalAvailable)
+        case .openRouter:
+            providerStatus = .openRouter(isAvailable: globalAvailable)
+        case .appleIntelligence:
+            providerStatus = .appleIntelligence(isAvailable: globalAvailable)
+        }
+    }
+    
     private func loadInitialData() async {
         isLoading = true
+        isProviderAvailable = llmService.isProviderAvailable
+        await updateProviderStatus(globalAvailable: isProviderAvailable)
         
         do {
             availableModels = try await llmService.getAvailableModels()

@@ -7,12 +7,14 @@ extension RecapViewModel {
                 self?.recordingDuration += 1
             }
         }
-        
-        levelTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+
+        let levelTick = Timer(timeInterval: 0.1, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.updateAudioLevels()
             }
         }
+        RunLoop.main.add(levelTick, forMode: .common)
+        levelTimer = levelTick
     }
     
     func stopTimers() {

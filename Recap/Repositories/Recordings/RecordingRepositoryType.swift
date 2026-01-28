@@ -15,7 +15,7 @@ protocol RecordingRepositoryType {
     func updateRecordingEndDate(id: String, endDate: Date) async throws
     func updateRecordingTranscription(id: String, transcriptionText: String) async throws
     func updateRecordingSummary(id: String, summaryText: String) async throws
-    func updateRecordingURLs(id: String, recordingURL: URL?, microphoneURL: URL?) async throws
+    func updateRecordingURLs(id: String, recordingURL: URL?, microphoneURL: URL?, hasMicrophoneAudio: Bool?) async throws
     func deleteRecording(id: String) async throws
     func deleteAllRecordings() async throws
 }

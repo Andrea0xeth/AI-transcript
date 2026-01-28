@@ -45,8 +45,14 @@ final class RecordingCoordinator: ObservableObject {
     }
     
     func startRecording(configuration: RecordingConfiguration) async throws -> RecordedFiles {
-        guard case .idle = state else {
+        if case .recording = state {
             throw AudioCaptureError.coreAudioError("Recording already in progress")
+        }
+        if case .starting = state {
+            throw AudioCaptureError.coreAudioError("Recording already in progress")
+        }
+        if case .failed = state {
+            state = .idle
         }
         
         state = .starting
@@ -57,7 +63,8 @@ final class RecordingCoordinator: ObservableObject {
             state = .recording(coordinator)
             currentRecordingURL = configuration.baseURL
             
-            logger.info("Recording started successfully for \(configuration.audioProcess.name) with microphone: \(configuration.enableMicrophone)")
+            let src = configuration.audioProcess?.name ?? "solo microfono"
+            logger.info("Recording started successfully (\(src), microphone: \(configuration.enableMicrophone))")
             
             return configuration.expectedFiles
             

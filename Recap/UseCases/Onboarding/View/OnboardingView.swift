@@ -2,9 +2,11 @@ import SwiftUI
 
 struct OnboardingView<ViewModel: OnboardingViewModelType>: View {
     @ObservedObject private var viewModel: ViewModel
+    private let onOpenExpandedWindow: () -> Void
     
-    init(viewModel: ViewModel) {
+    init(viewModel: ViewModel, onOpenExpandedWindow: @escaping () -> Void = {}) {
         self.viewModel = viewModel
+        self.onOpenExpandedWindow = onOpenExpandedWindow
     }
     
     var body: some View {
@@ -50,6 +52,24 @@ struct OnboardingView<ViewModel: OnboardingViewModelType>: View {
             Text("Let's set up a few things to get you started")
                 .font(.system(size: 12, weight: .regular))
                 .foregroundColor(UIConstants.Colors.textSecondary)
+
+            Button {
+                onOpenExpandedWindow()
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                        .font(.system(size: 12, weight: .semibold))
+                    Text("Apri a schermo intero")
+                        .font(.system(size: 12, weight: .medium))
+                }
+                .foregroundColor(UIConstants.Colors.textPrimary)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(UIConstants.Colors.cardBackground2)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 10)
         }
         .padding(.vertical, 20)
         .padding(.horizontal, 24)

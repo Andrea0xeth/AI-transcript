@@ -31,9 +31,12 @@ extension RecapViewModel {
         logRecordedFiles(recordedFiles)
         
         do {
+            let hadMicrophone = recordedFiles.microphoneURL != nil
+            let finalRecordedFiles = try mergeSystemAndMicrophoneIfNeeded(recordedFiles)
             try await updateRecordingInRepository(
                 recordingID: recordingID,
-                recordedFiles: recordedFiles
+                recordedFiles: finalRecordedFiles,
+                hasMicrophoneAudio: hadMicrophone
             )
             
             if let updatedRecording = try await recordingRepository.fetchRecording(id: recordingID) {
@@ -47,13 +50,15 @@ extension RecapViewModel {
     
     private func updateRecordingInRepository(
         recordingID: String,
-        recordedFiles: RecordedFiles
+        recordedFiles: RecordedFiles,
+        hasMicrophoneAudio: Bool
     ) async throws {
         if let systemAudioURL = recordedFiles.systemAudioURL {
             try await recordingRepository.updateRecordingURLs(
                 id: recordingID,
                 recordingURL: systemAudioURL,
-                microphoneURL: recordedFiles.microphoneURL
+                microphoneURL: recordedFiles.microphoneURL,
+                hasMicrophoneAudio: hasMicrophoneAudio
             )
         }
         
@@ -76,5 +81,37 @@ extension RecapViewModel {
         if let microphoneURL = recordedFiles.microphoneURL {
             logger.info("Recording stopped successfully - Microphone: \(microphoneURL.path)")
         }
+    }
+
+    private func mergeSystemAndMicrophoneIfNeeded(_ recordedFiles: RecordedFiles) throws -> RecordedFiles {
+        guard let systemURL = recordedFiles.systemAudioURL,
+              let micURL = recordedFiles.microphoneURL,
+              FileManager.default.fileExists(atPath: systemURL.path),
+              FileManager.default.fileExists(atPath: micURL.path) else {
+            return recordedFiles
+        }
+
+        let tempURL = systemURL.deletingPathExtension().appendingPathExtension("merged.wav")
+        if FileManager.default.fileExists(atPath: tempURL.path) {
+            try? FileManager.default.removeItem(at: tempURL)
+        }
+
+        try AudioMerger.mergeSystemAndMicrophone(
+            systemURL: systemURL,
+            microphoneURL: micURL,
+            outputURL: tempURL
+        )
+
+        try? FileManager.default.removeItem(at: systemURL)
+        try FileManager.default.moveItem(at: tempURL, to: systemURL)
+        try? FileManager.default.removeItem(at: micURL)
+
+        logger.info("Merged system+microphone audio into: \(systemURL.path)")
+
+        return RecordedFiles(
+            microphoneURL: nil,
+            systemAudioURL: systemURL,
+            applicationName: recordedFiles.applicationName
+        )
     }
 }

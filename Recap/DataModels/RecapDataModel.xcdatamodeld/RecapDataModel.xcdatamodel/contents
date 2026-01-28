@@ -21,6 +21,13 @@
         <attribute name="summaryPromptTemplate" optional="YES" attributeType="String"/>
         <relationship name="selectedLLMModel" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="LLMModel"/>
     </entity>
+    <entity name="Folder" representedClassName="Folder" syncable="YES" codeGenerationType="class">
+        <attribute name="id" attributeType="String"/>
+        <attribute name="name" attributeType="String"/>
+        <attribute name="createdAt" attributeType="Date" defaultDateTimeInterval="0" usesScalarValueType="NO"/>
+        <attribute name="modifiedAt" attributeType="Date" defaultDateTimeInterval="0" usesScalarValueType="NO"/>
+        <relationship name="recordings" optional="YES" maxCount="0" deletionRule="Nullify" destinationEntity="UserRecording" inverseName="folder" inverseEntity="UserRecording"/>
+    </entity>
     <entity name="UserRecording" representedClassName="UserRecording" syncable="YES" codeGenerationType="class">
         <attribute name="createdAt" attributeType="Date" defaultDateTimeInterval="0" usesScalarValueType="NO"/>
         <attribute name="endDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
@@ -35,6 +42,7 @@
         <attribute name="state" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="summaryText" optional="YES" attributeType="String"/>
         <attribute name="transcriptionText" optional="YES" attributeType="String"/>
+        <relationship name="folder" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Folder" inverseName="recordings" inverseEntity="Folder"/>
         <fetchIndex name="byCreatedAt">
             <fetchIndexElement property="createdAt" type="Binary" order="descending"/>
         </fetchIndex>

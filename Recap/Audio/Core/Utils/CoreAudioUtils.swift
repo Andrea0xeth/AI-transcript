@@ -191,7 +191,7 @@ enum AudioCaptureError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .coreAudioError(let message):
-            return "Core Audio Error: \(message)"
+            return message
         case .invalidProcessID(let pid):
             return "Invalid process identifier: \(pid)"
         case .invalidSystemObject:
@@ -201,7 +201,7 @@ enum AudioCaptureError: LocalizedError {
         case .deviceCreationFailed(let status):
             return "Audio device creation failed with error \(status)"
         case .microphonePermissionDenied:
-            return "Microphone permission denied"
+            return "Per registrare la tua voce serve l'autorizzazione al microfono. Attivala in Impostazioni di sistema > Privacy e sicurezza > Microfono > Recap."
         case .unsupportedMacOSVersion:
             return "Core Audio Taps requires macOS 14.2 or later"
         }

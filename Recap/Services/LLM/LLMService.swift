@@ -33,7 +33,8 @@ final class LLMService: LLMServiceType {
     func initializeProviders() {
         let ollamaProvider = OllamaProvider()
         let openRouterProvider = OpenRouterProvider()
-        availableProviders = [ollamaProvider, openRouterProvider]
+        let appleIntelligenceProvider = AppleIntelligenceProvider()
+        availableProviders = [ollamaProvider, openRouterProvider, appleIntelligenceProvider]
         
         Task {
             do {
@@ -44,12 +45,13 @@ final class LLMService: LLMServiceType {
             }
         }
         
-        Publishers.CombineLatest(
+        Publishers.CombineLatest3(
             ollamaProvider.availabilityPublisher,
-            openRouterProvider.availabilityPublisher
+            openRouterProvider.availabilityPublisher,
+            appleIntelligenceProvider.availabilityPublisher
         )
-        .map { ollamaAvailable, openRouterAvailable in
-            ollamaAvailable || openRouterAvailable
+        .map { ollamaAvailable, openRouterAvailable, appleAvailable in
+            ollamaAvailable || openRouterAvailable || appleAvailable
         }
         .sink { [weak self] isAnyProviderAvailable in
             self?.isProviderAvailable = isAnyProviderAvailable

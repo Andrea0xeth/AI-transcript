@@ -19,27 +19,91 @@ struct RecapHomeView: View {
             ZStack {
                 UIConstants.Gradients.backgroundGradient
                     .ignoresSafeArea()
-                
-                ScrollView(.vertical, showsIndicators: false) {
-                    VStack(spacing: UIConstants.Spacing.sectionSpacing) {
-                        HStack {
-                            Text("Recap")
-                                .foregroundColor(UIConstants.Colors.textPrimary)
-                                .font(UIConstants.Typography.appTitle)
-                                .padding(.leading, UIConstants.Spacing.contentPadding)
-                                .padding(.top, UIConstants.Spacing.sectionSpacing)
-                            
-                            Spacer()
+
+                VStack(spacing: 0) {
+                    // Header sempre visibile in alto: titolo a sinistra, pulsante "Apri a schermo intero" a destra
+                    HStack(alignment: .center, spacing: 12) {
+                        Text("Recap")
+                            .foregroundColor(UIConstants.Colors.textPrimary)
+                            .font(UIConstants.Typography.appTitle)
+                            .padding(.leading, UIConstants.Spacing.contentPadding)
+
+                        Spacer(minLength: 0)
+
+                        Button {
+                            viewModel.openExpandedWindow()
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "arrow.up.left.and.arrow.down.right")
+                                    .font(.system(size: 13, weight: .semibold))
+                                Text("Schermo intero")
+                                    .font(.system(size: 12, weight: .medium))
+                            }
+                            .foregroundColor(UIConstants.Colors.textPrimary)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(UIConstants.Colors.cardBackground2)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .contentShape(Rectangle())
                         }
-                        
+                        .buttonStyle(.plain)
+                        .help("Apri Recap in una finestra ridimensionabile o a schermo intero")
+                        .padding(.trailing, UIConstants.Spacing.contentPadding)
+                    }
+                    .frame(height: 52)
+                    .frame(maxWidth: .infinity)
+
+                    ScrollView(.vertical, showsIndicators: false) {
+                        VStack(spacing: UIConstants.Spacing.sectionSpacing) {
+                        VStack(spacing: 10) {
+                            Text("Apri Recap a schermo intero")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(UIConstants.Colors.textPrimary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            
+                            Text("Usa una finestra ridimensionabile e il pulsante verde per andare in full screen.")
+                                .font(.system(size: 12, weight: .regular))
+                                .foregroundColor(UIConstants.Colors.textSecondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            
+                            Button {
+                                viewModel.openExpandedWindow()
+                            } label: {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                                        .font(.system(size: 14, weight: .semibold))
+                                    Text("Apri a schermo intero")
+                                        .font(.system(size: 13, weight: .semibold))
+                                }
+                                .foregroundColor(UIConstants.Colors.textPrimary)
+                                .padding(.vertical, 10)
+                                .frame(maxWidth: .infinity)
+                                .background(UIConstants.Colors.cardSecondaryBackground)
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                            }
+                            .buttonStyle(.plain)
+                            .padding(.top, 4)
+                        }
+                        .padding(.vertical, 14)
+                        .padding(.horizontal, UIConstants.Spacing.contentPadding)
+                        .background(UIConstants.Colors.cardBackground2)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .padding(.horizontal, UIConstants.Spacing.contentPadding)
+
                         ForEach(viewModel.activeWarnings, id: \.id) { warning in
                             WarningCard(warning: warning, containerWidth: geometry.size.width)
                                 .padding(.horizontal, UIConstants.Spacing.contentPadding)
                         }
                         
+                        Text("SORGENTI AUDIO")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(UIConstants.Colors.textSecondary)
+                            .padding(.horizontal, UIConstants.Spacing.contentPadding)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
                         HStack(spacing: UIConstants.Spacing.cardSpacing) {
                             HeatmapCard(
-                                title: "System Audio", 
+                                title: "System Audio",
                                 containerWidth: geometry.size.width,
                                 isSelected: true,
                                 audioLevel: viewModel.systemAudioHeatmapLevel,
@@ -58,10 +122,22 @@ struct RecapHomeView: View {
                             )
                         }
                         
+                        Text("Recap registra l’audio di sistema (tutte le app) e, se attivo, anche il microfono.")
+                            .font(.caption)
+                            .foregroundColor(UIConstants.Colors.textSecondary)
+                            .multilineTextAlignment(.leading)
+                            .padding(.horizontal, UIConstants.Spacing.contentPadding)
+                            .padding(.top, 4)
+                        
+                        Text("REGISTRAZIONE")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(UIConstants.Colors.textSecondary)
+                            .padding(.horizontal, UIConstants.Spacing.contentPadding)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
                         VStack(spacing: UIConstants.Spacing.cardSpacing) {
                             CustomReflectionCard(
                                 containerWidth: geometry.size.width,
-                                appSelectionViewModel: viewModel.appSelectionViewModel,
                                 isRecording: viewModel.isRecording,
                                 recordingDuration: viewModel.recordingDuration,
                                 canStartRecording: viewModel.canStartRecording,
@@ -79,6 +155,12 @@ struct RecapHomeView: View {
                             TranscriptionCard(containerWidth: geometry.size.width) {
                                 viewModel.openView()
                             }
+                            
+                            Text("AZIONI RAPIDE")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(UIConstants.Colors.textSecondary)
+                                .padding(.horizontal, UIConstants.Spacing.contentPadding)
+                                .frame(maxWidth: .infinity, alignment: .leading)
                             
                             HStack(spacing: UIConstants.Spacing.cardSpacing) {
                                 InformationCard(
@@ -104,6 +186,7 @@ struct RecapHomeView: View {
                         }
                         
                         Spacer(minLength: UIConstants.Spacing.sectionSpacing)
+                        }
                     }
                 }
             }

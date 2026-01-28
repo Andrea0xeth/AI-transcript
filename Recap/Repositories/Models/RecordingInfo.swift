@@ -10,6 +10,8 @@ struct RecordingInfo: Identifiable, Equatable {
     let microphoneURL: URL?
     let hasMicrophoneAudio: Bool
     let applicationName: String?
+    let folderID: String?
+    let folderName: String?
     let transcriptionText: String?
     let summaryText: String?
     let createdAt: Date
@@ -48,6 +50,8 @@ extension RecordingInfo {
         self.microphoneURL = entity.microphoneURL.map { URL(fileURLWithPath: $0) }
         self.hasMicrophoneAudio = entity.hasMicrophoneAudio
         self.applicationName = entity.applicationName
+        self.folderID = entity.folder?.id
+        self.folderName = entity.folder?.name
         self.transcriptionText = entity.transcriptionText
         self.summaryText = entity.summaryText
         self.createdAt = entity.createdAt ?? Date()

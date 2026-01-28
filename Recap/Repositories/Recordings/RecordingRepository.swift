@@ -156,7 +156,7 @@ final class RecordingRepository: RecordingRepositoryType {
         }
     }
     
-    func updateRecordingURLs(id: String, recordingURL: URL?, microphoneURL: URL?) async throws {
+    func updateRecordingURLs(id: String, recordingURL: URL?, microphoneURL: URL?, hasMicrophoneAudio: Bool?) async throws {
         try await withCheckedThrowingContinuation { continuation in
             coreDataManager.performBackgroundTask { context in
                 do {
@@ -166,6 +166,11 @@ final class RecordingRepository: RecordingRepositoryType {
                     }
                     if let microphoneURL = microphoneURL {
                         recording.microphoneURL = microphoneURL.path
+                    } else {
+                        recording.microphoneURL = nil
+                    }
+                    if let hasMicrophoneAudio = hasMicrophoneAudio {
+                        recording.hasMicrophoneAudio = hasMicrophoneAudio
                     }
                     recording.modifiedAt = Date()
                     

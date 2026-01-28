@@ -5,29 +5,37 @@ extension RecapViewModel {
     func startRecording() async {
         syncRecordingStateWithCoordinator()
         guard !isRecording else { return }
-        guard let selectedApp = selectedApp else { return }
-        
+        guard canStartRecording else { return }
+        guard !isStartRecordingInProgress else {
+            logger.debug("Start recording ignored: already in progress")
+            return
+        }
+        isStartRecordingInProgress = true
+        defer { isStartRecordingInProgress = false }
+
         do {
             errorMessage = nil
-            
+
             let recordingID = generateRecordingID()
             currentRecordingID = recordingID
-            
+
             let configuration = try await createRecordingConfiguration(
                 recordingID: recordingID,
-                audioProcess: selectedApp
+                audioProcess: nil,
+                captureSystemAudio: true
             )
-            
+
             let recordedFiles = try await recordingCoordinator.startRecording(configuration: configuration)
-            
+
             try await createRecordingEntity(
                 recordingID: recordingID,
                 recordedFiles: recordedFiles
             )
-            
+
             updateRecordingUIState(started: true)
-            
-            logger.info("Recording started successfully - System: \(recordedFiles.systemAudioURL?.path ?? "none"), Microphone: \(recordedFiles.microphoneURL?.path ?? "none")")
+
+            let systemLabel = recordedFiles.systemAudioURL != nil ? "on" : "off"
+            logger.info("Recording started - system audio: \(systemLabel), microphone: \(recordedFiles.microphoneURL != nil ? "on" : "off")")
         } catch {
             handleRecordingStartError(error)
         }
@@ -39,7 +47,8 @@ extension RecapViewModel {
     
     private func createRecordingConfiguration(
         recordingID: String,
-        audioProcess: AudioProcess
+        audioProcess: AudioProcess?,
+        captureSystemAudio: Bool
     ) async throws -> RecordingConfiguration {
         try fileManager.ensureRecordingsDirectoryExists()
         
@@ -48,6 +57,7 @@ extension RecapViewModel {
         return RecordingConfiguration(
             id: recordingID,
             audioProcess: audioProcess,
+            captureSystemAudio: captureSystemAudio,
             enableMicrophone: isMicrophoneEnabled,
             baseURL: baseURL
         )
@@ -57,13 +67,15 @@ extension RecapViewModel {
         recordingID: String,
         recordedFiles: RecordedFiles
     ) async throws {
+        let mainURL = recordedFiles.systemAudioURL ?? recordedFiles.microphoneURL ?? fileManager.createRecordingBaseURL(for: recordingID)
+        let micURL = recordedFiles.systemAudioURL != nil ? recordedFiles.microphoneURL : nil
         let recordingInfo = try await recordingRepository.createRecording(
             id: recordingID,
             startDate: Date(),
-            recordingURL: recordedFiles.systemAudioURL ?? fileManager.createRecordingBaseURL(for: recordingID),
-            microphoneURL: recordedFiles.microphoneURL,
+            recordingURL: mainURL,
+            microphoneURL: micURL,
             hasMicrophoneAudio: isMicrophoneEnabled,
-            applicationName: recordedFiles.applicationName ?? selectedApp?.name
+            applicationName: recordedFiles.applicationName
         )
         currentRecordings.insert(recordingInfo, at: 0)
     }

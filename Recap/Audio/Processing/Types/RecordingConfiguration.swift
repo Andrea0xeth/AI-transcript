@@ -2,23 +2,20 @@ import Foundation
 
 struct RecordingConfiguration {
     let id: String
-    let audioProcess: AudioProcess
+    /// Se nil, viene registrato l'audio di sistema in modalità globale (se abilitato).
+    let audioProcess: AudioProcess?
+    /// Se true registra tutto l'audio di sistema (non solo una singola app).
+    let captureSystemAudio: Bool
     let enableMicrophone: Bool
     let baseURL: URL
     
     var expectedFiles: RecordedFiles {
-        if enableMicrophone {
-            return RecordedFiles(
-                microphoneURL: baseURL.appendingPathExtension("microphone.wav"),
-                systemAudioURL: baseURL.appendingPathExtension("system.wav"),
-                applicationName: audioProcess.name
-            )
-        } else {
-            return RecordedFiles(
-                microphoneURL: nil,
-                systemAudioURL: baseURL.appendingPathExtension("system.wav"),
-                applicationName: audioProcess.name
-            )
-        }
+        let systemURL = captureSystemAudio ? baseURL.appendingPathExtension("system.wav") : nil
+        let micURL = enableMicrophone ? baseURL.appendingPathExtension("microphone.wav") : nil
+        return RecordedFiles(
+            microphoneURL: micURL,
+            systemAudioURL: systemURL,
+            applicationName: audioProcess?.name ?? (captureSystemAudio ? "System Audio" : nil)
+        )
     }
 }

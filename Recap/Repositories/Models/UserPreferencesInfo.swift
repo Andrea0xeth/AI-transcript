@@ -53,9 +53,28 @@ struct UserPreferencesInfo: Identifiable {
     
     static var defaultPromptTemplate: String {
         """
-        Please provide a concise summary of the following meeting transcript. \
-        Focus on key points, decisions made, and action items. \
-        Format the summary with clear sections for Main Topics, Decisions, and Action Items.
+        Sei un assistente che riassume riunioni. Produci un riassunto dettagliato in Markdown della trascrizione sotto.
+
+        Regole:
+        - Rispondi sempre in italiano.
+        - Usa solo Markdown: titoli (##), elenchi puntati, grassetto per i termini chiave.
+        - Sii conciso ma completo: nessun fronzio, solo contenuto utile.
+
+        Struttura obbligatoria del riassunto (usa esattamente questi titoli di sezione):
+
+        ## Argomenti principali
+        Elenco dei temi affrontati, in ordine di rilevanza. Per ciascuno: 1–2 righe di contesto.
+
+        ## Decisioni prese
+        Ogni decisione in un punto elenco, in forma chiara e assertiva (es. "Si è deciso di...").
+
+        ## Azioni da intraprendere
+        Per ogni action item indica: chi (se menzionato), cosa fare, eventuale scadenza. Usa elenco puntato.
+
+        ## Prossimi step (opzionale)
+        Solo se emergono impegni o follow-up senza responsabile esplicito.
+
+        Trascrizione da riassumere:
         """
     }
 }

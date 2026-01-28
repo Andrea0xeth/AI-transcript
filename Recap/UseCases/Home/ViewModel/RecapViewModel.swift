@@ -8,6 +8,7 @@ protocol RecapViewModelDelegate: AnyObject {
     func didRequestSettingsOpen()
     func didRequestViewOpen()
     func didRequestPreviousRecapsOpen()
+    func didRequestExpandedWindowOpen()
 }
 
 @MainActor
@@ -17,7 +18,7 @@ final class RecapViewModel: ObservableObject {
     @Published var microphoneLevel: Float = 0.0
     @Published var systemAudioLevel: Float = 0.0
     @Published var errorMessage: String?
-    @Published var isMicrophoneEnabled = false
+    @Published var isMicrophoneEnabled = true
     @Published var currentRecordings: [RecordingInfo] = []
     @Published var showErrorToast = false
     
@@ -45,7 +46,9 @@ final class RecapViewModel: ObservableObject {
 
     var currentRecordingID: String?
     var lastNotifiedMeetingKey: String?
-    
+    /// Evita doppi avvii quando l’utente preme Start più volte o c’è una race.
+    var isStartRecordingInProgress = false
+
     var cancellables = Set<AnyCancellable>()
     init(
         recordingCoordinator: RecordingCoordinator,
@@ -107,8 +110,9 @@ final class RecapViewModel: ObservableObject {
         !appSelectionViewModel.availableApps.isEmpty
     }
     
+    /// L'audio di sistema è sempre attivo; il microfono è opzionale.
     var canStartRecording: Bool {
-        selectedApp != nil
+        true
     }
     
     func toggleMicrophone() {
@@ -198,6 +202,10 @@ extension RecapViewModel {
     
     func openPreviousRecaps() {
         delegate?.didRequestPreviousRecapsOpen()
+    }
+
+    func openExpandedWindow() {
+        delegate?.didRequestExpandedWindowOpen()
     }
 }
 

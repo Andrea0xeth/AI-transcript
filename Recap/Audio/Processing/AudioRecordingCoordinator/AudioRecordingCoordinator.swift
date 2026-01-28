@@ -7,7 +7,7 @@ final class AudioRecordingCoordinator: AudioRecordingCoordinatorType {
     
     private let configuration: RecordingConfiguration
     private let microphoneCapture: MicrophoneCaptureType?
-    private let processTap: ProcessTap
+    private let processTap: ProcessTap?
     
     private var isRunning = false
     private var tapRecorder: ProcessTapRecorder?
@@ -15,7 +15,7 @@ final class AudioRecordingCoordinator: AudioRecordingCoordinatorType {
     init(
         configuration: RecordingConfiguration,
         microphoneCapture: MicrophoneCaptureType?,
-        processTap: ProcessTap
+        processTap: ProcessTap?
     ) {
         self.configuration = configuration
         self.microphoneCapture = microphoneCapture
@@ -27,7 +27,7 @@ final class AudioRecordingCoordinator: AudioRecordingCoordinatorType {
         
         let expectedFiles = configuration.expectedFiles
         
-        if let systemAudioURL = expectedFiles.systemAudioURL {
+        if let systemAudioURL = expectedFiles.systemAudioURL, let processTap = processTap {
             let recorder = ProcessTapRecorder(fileURL: systemAudioURL, tap: processTap)
             self.tapRecorder = recorder
             
@@ -37,17 +37,21 @@ final class AudioRecordingCoordinator: AudioRecordingCoordinatorType {
             logger.info("System audio recording started: \(systemAudioURL.lastPathComponent)")
         }
         
-        if let microphoneURL = expectedFiles.microphoneURL, 
+        if let microphoneURL = expectedFiles.microphoneURL,
            let microphoneCapture = microphoneCapture {
-            await MainActor.run {
-                processTap.activate()
+            let targetFormat: AudioStreamBasicDescription?
+            if let tap = processTap {
+                await MainActor.run { tap.activate() }
+                targetFormat = tap.tapStreamDescription
+            } else {
+                targetFormat = nil
             }
             
-            guard let tapStreamDescription = processTap.tapStreamDescription else {
-                throw AudioCaptureError.coreAudioError("Tap stream description not available")
+            if let desc = targetFormat {
+                try microphoneCapture.start(outputURL: microphoneURL, targetFormat: desc)
+            } else {
+                try microphoneCapture.start(outputURL: microphoneURL, targetFormat: nil)
             }
-            
-            try microphoneCapture.start(outputURL: microphoneURL, targetFormat: tapStreamDescription)
             logger.info("Microphone recording started: \(microphoneURL.lastPathComponent)")
         }
         
@@ -60,7 +64,7 @@ final class AudioRecordingCoordinator: AudioRecordingCoordinatorType {
         
         microphoneCapture?.stop()
         tapRecorder?.stop()
-        processTap.invalidate()
+        processTap?.invalidate()
 
         isRunning = false
         tapRecorder = nil
@@ -73,7 +77,7 @@ final class AudioRecordingCoordinator: AudioRecordingCoordinatorType {
     }
     
     var currentSystemAudioLevel: Float {
-        processTap.audioLevel
+        processTap?.audioLevel ?? 0.0
     }
     
     var hasDualAudio: Bool {

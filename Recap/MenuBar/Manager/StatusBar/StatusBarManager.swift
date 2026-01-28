@@ -4,6 +4,7 @@ import AppKit
 protocol StatusBarDelegate: AnyObject {
     func statusItemClicked()
     func quitRequested()
+    func openExpandedWindowRequested()
 }
 
 final class StatusBarManager: StatusBarManagerType {
@@ -43,13 +44,23 @@ final class StatusBarManager: StatusBarManagerType {
     private func showContextMenu() {
         let contextMenu = NSMenu()
         
+        let expandItem = NSMenuItem(title: "Apri a schermo intero", action: #selector(expandMenuItemClicked), keyEquivalent: "")
+        expandItem.target = self
+        contextMenu.addItem(expandItem)
+        contextMenu.addItem(NSMenuItem.separator())
+        
         let quitItem = NSMenuItem(title: "Quit Recap", action: #selector(quitMenuItemClicked), keyEquivalent: "q")
         quitItem.target = self
-        
         contextMenu.addItem(quitItem)
         
         if let button = statusItem?.button {
             contextMenu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.maxY), in: button)
+        }
+    }
+    
+    @objc private func expandMenuItemClicked() {
+        DispatchQueue.main.async { [weak self] in
+            self?.delegate?.openExpandedWindowRequested()
         }
     }
     
