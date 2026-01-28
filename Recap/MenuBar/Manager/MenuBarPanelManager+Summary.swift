@@ -8,6 +8,7 @@ extension MenuBarPanelManager {
                 self?.hideSummaryPanel()
             },
             viewModel: summaryViewModel,
+            askViewModel: askViewModel,
             recordingID: recordingID
         )
         let hostingController = NSHostingController(rootView: contentView)

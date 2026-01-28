@@ -13,6 +13,13 @@ extension DependencyContainer {
     func makePreviousRecapsViewModel() -> PreviousRecapsViewModel {
         PreviousRecapsViewModel(recordingRepository: recordingRepository)
     }
+
+    func makeAskViewModel() -> AskViewModel {
+        AskViewModel(
+            recordingRepository: recordingRepository,
+            llmService: llmService
+        )
+    }
     
     func makeGeneralSettingsViewModel() -> GeneralSettingsViewModel {
         GeneralSettingsViewModel(

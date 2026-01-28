@@ -4,6 +4,8 @@ struct PreviousRecapsDropdown<ViewModel: PreviousRecapsViewModelType>: View {
     @ObservedObject private var viewModel: ViewModel
     let onRecordingSelected: (RecordingInfo) -> Void
     let onClose: () -> Void
+    @State private var showingCreateFolder = false
+    @State private var newFolderName = ""
     
     init(
         viewModel: ViewModel,
@@ -60,19 +62,65 @@ struct PreviousRecapsDropdown<ViewModel: PreviousRecapsViewModelType>: View {
     }
     
     private var dropdownHeader: some View {
-        HStack {
-            Text("Previous Recaps")
-                .foregroundColor(UIConstants.Colors.textPrimary)
-                .font(UIConstants.Typography.appTitle)
+        VStack(alignment: .leading, spacing: UIConstants.Spacing.cardPadding) {
+            HStack {
+                Text("Previous Recaps")
+                    .foregroundColor(UIConstants.Colors.textPrimary)
+                    .font(UIConstants.Typography.appTitle)
+                
+                Spacer()
+                
+                PillButton(text: "Close", icon: "xmark") {
+                    onClose()
+                }
+            }
             
-            Spacer()
-            
-            PillButton(text: "Close", icon: "xmark") {
-                onClose()
+            HStack(spacing: 8) {
+                Menu {
+                    Button("All Recaps") {
+                        viewModel.selectFolder(nil)
+                    }
+                    if !viewModel.folders.isEmpty {
+                        Divider()
+                    }
+                    ForEach(viewModel.folders) { folder in
+                        Button(folder.name) {
+                            viewModel.selectFolder(folder.id)
+                        }
+                    }
+                } label: {
+                    PillButton(text: folderLabel, icon: "folder") { }
+                }
+                
+                PillButton(text: "New Folder", icon: "folder.badge.plus") {
+                    showingCreateFolder = true
+                }
             }
         }
         .padding(.horizontal, UIConstants.Spacing.contentPadding)
         .padding(.bottom, UIConstants.Spacing.sectionSpacing)
+        .alert("Create Folder", isPresented: $showingCreateFolder) {
+            TextField("Folder name", text: $newFolderName)
+            Button("Create") {
+                let trimmed = newFolderName.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !trimmed.isEmpty else { return }
+                Task { await viewModel.createFolder(name: trimmed) }
+                newFolderName = ""
+            }
+            Button("Cancel", role: .cancel) {
+                newFolderName = ""
+            }
+        } message: {
+            Text("Create a new folder to organize your recordings.")
+        }
+    }
+
+    private var folderLabel: String {
+        if let selectedFolderID = viewModel.selectedFolderID,
+           let folder = viewModel.folders.first(where: { $0.id == selectedFolderID }) {
+            return folder.name
+        }
+        return "All Recaps"
     }
     
     private var recordingsContent: some View {
@@ -262,11 +310,15 @@ private class MockPreviousRecapsViewModel: ObservableObject, PreviousRecapsViewM
         ],
         allRecordings: []
     )
+    @Published var folders: [FolderInfo] = []
+    @Published var selectedFolderID: String?
     
     @Published var isLoading = false
     @Published var errorMessage: String?
     
     func loadRecordings() async {}
+    func selectFolder(_ folderID: String?) { selectedFolderID = folderID }
+    func createFolder(name: String) async {}
     func startAutoRefresh() {}
     func stopAutoRefresh() {}
 }

@@ -23,6 +23,7 @@ final class DependencyContainer {
     lazy var recapViewModel: RecapViewModel = createRecapViewModel()
     lazy var onboardingViewModel: OnboardingViewModel = makeOnboardingViewModel()
     lazy var summaryViewModel: SummaryViewModel = createSummaryViewModel()
+    lazy var askViewModel: AskViewModel = makeAskViewModel()
     lazy var transcriptionService: TranscriptionServiceType = makeTranscriptionService()
     lazy var warningManager: any WarningManagerType = makeWarningManager()
     lazy var providerWarningCoordinator: ProviderWarningCoordinator = makeProviderWarningCoordinator()
@@ -54,6 +55,7 @@ final class DependencyContainer {
             recapViewModel: recapViewModel,
             onboardingViewModel: onboardingViewModel,
             summaryViewModel: summaryViewModel,
+            askViewModel: askViewModel,
             generalSettingsViewModel: generalSettingsViewModel,
             userPreferencesRepository: userPreferencesRepository,
             meetingDetectionService: meetingDetectionService

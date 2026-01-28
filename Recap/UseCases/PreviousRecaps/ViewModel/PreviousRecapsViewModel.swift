@@ -18,6 +18,8 @@ final class PreviousRecapsViewModel: PreviousRecapsViewModelType {
         thisWeekRecordings: [],
         allRecordings: []
     )
+    @Published private(set) var folders: [FolderInfo] = []
+    @Published private(set) var selectedFolderID: String?
     @Published private(set) var isLoading = false
     @Published private(set) var errorMessage: String?
     
@@ -37,14 +39,35 @@ final class PreviousRecapsViewModel: PreviousRecapsViewModelType {
     func loadRecordings() async {
         do {
             let allRecordings = try await recordingRepository.fetchAllRecordings()
+            folders = try await recordingRepository.fetchFolders()
+            let filteredRecordings = filterRecordings(allRecordings)
             withAnimation(.easeInOut(duration: 0.3)) {
-                groupedRecordings = groupRecordingsByTimePeriod(allRecordings)
+                groupedRecordings = groupRecordingsByTimePeriod(filteredRecordings)
             }
         } catch {
             withAnimation(.easeInOut(duration: 0.3)) {
                 errorMessage = "Failed to load recordings: \(error.localizedDescription)"
             }
         }
+    }
+
+    func selectFolder(_ folderID: String?) {
+        selectedFolderID = folderID
+        Task { await loadRecordings() }
+    }
+
+    func createFolder(name: String) async {
+        do {
+            _ = try await recordingRepository.createFolder(name: name)
+            await loadRecordings()
+        } catch {
+            errorMessage = "Failed to create folder: \(error.localizedDescription)"
+        }
+    }
+
+    private func filterRecordings(_ recordings: [RecordingInfo]) -> [RecordingInfo] {
+        guard let selectedFolderID = selectedFolderID else { return recordings }
+        return recordings.filter { $0.folderID == selectedFolderID }
     }
     
     private func groupRecordingsByTimePeriod(_ recordings: [RecordingInfo]) -> GroupedRecordings {

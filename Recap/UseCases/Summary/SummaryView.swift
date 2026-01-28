@@ -4,15 +4,21 @@ import MarkdownUI
 struct SummaryView<ViewModel: SummaryViewModelType>: View {
     let onClose: () -> Void
     @ObservedObject var viewModel: ViewModel
+    @ObservedObject var askViewModel: AskViewModel
     let recordingID: String?
+    @State private var showingAsk = false
+    @State private var showingCreateFolder = false
+    @State private var newFolderName = ""
     
     init(
         onClose: @escaping () -> Void,
         viewModel: ViewModel,
+        askViewModel: AskViewModel,
         recordingID: String? = nil
     ) {
         self.onClose = onClose
         self.viewModel = viewModel
+        self.askViewModel = askViewModel
         self.recordingID = recordingID
     }
     
@@ -24,6 +30,7 @@ struct SummaryView<ViewModel: SummaryViewModelType>: View {
                 
                 VStack(spacing: UIConstants.Spacing.sectionSpacing) {
                     headerView
+                    folderRow
                     
                     if viewModel.isLoadingRecording {
                         loadingView
@@ -64,6 +71,13 @@ struct SummaryView<ViewModel: SummaryViewModelType>: View {
                 title: "Copied to clipboard"
             )
         }
+        .sheet(isPresented: $showingAsk) {
+            AskView(
+                viewModel: askViewModel,
+                preselectedRecordingID: recordingID ?? viewModel.currentRecording?.id,
+                onClose: { showingAsk = false }
+            )
+        }
     }
     
     private var headerView: some View {
@@ -86,6 +100,54 @@ struct SummaryView<ViewModel: SummaryViewModelType>: View {
         PillButton(text: "Close", icon: "xmark") {
             onClose()
         }
+    }
+
+    private var folderRow: some View {
+        HStack {
+            Menu {
+                Button("No Folder") {
+                    Task { await viewModel.selectFolder(nil) }
+                }
+                if !viewModel.folders.isEmpty {
+                    Divider()
+                }
+                ForEach(viewModel.folders) { folder in
+                    Button(folder.name) {
+                        Task { await viewModel.selectFolder(folder.id) }
+                    }
+                }
+                Divider()
+                Button("New Folder…") {
+                    showingCreateFolder = true
+                }
+            } label: {
+                PillButton(text: folderLabel, icon: "folder") { }
+            }
+            Spacer()
+        }
+        .padding(.horizontal, UIConstants.Spacing.contentPadding)
+        .alert("Create Folder", isPresented: $showingCreateFolder) {
+            TextField("Folder name", text: $newFolderName)
+            Button("Create") {
+                let trimmed = newFolderName.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !trimmed.isEmpty else { return }
+                Task { await viewModel.createFolder(name: trimmed) }
+                newFolderName = ""
+            }
+            Button("Cancel", role: .cancel) {
+                newFolderName = ""
+            }
+        } message: {
+            Text("Create a new folder to organize this recording.")
+        }
+    }
+
+    private var folderLabel: String {
+        if let selectedFolderID = viewModel.selectedFolderID,
+           let folder = viewModel.folders.first(where: { $0.id == selectedFolderID }) {
+            return folder.name
+        }
+        return "No Folder"
     }
     
     private var loadingView: some View {
@@ -217,6 +279,20 @@ struct SummaryView<ViewModel: SummaryViewModelType>: View {
                     viewModel.copySummary()
                 }
                 
+                SummaryActionButton(
+                    text: "Ask",
+                    icon: "sparkles"
+                ) {
+                    showingAsk = true
+                }
+
+                SummaryActionButton(
+                    text: "Open in Finder",
+                    icon: "folder"
+                ) {
+                    viewModel.openInFinder()
+                }
+
                 SummaryActionButton(
                     text: retryButtonText,
                     icon: "arrow.clockwise"

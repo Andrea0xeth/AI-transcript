@@ -149,6 +149,33 @@ final class LLMService: LLMServiceType {
             options: effectiveOptions
         )
     }
+
+    func generateChat(
+        messages: [LLMMessage],
+        options: LLMOptions? = nil
+    ) async throws -> String {
+        guard let selectedModel = try await getSelectedModel() else {
+            throw LLMError.configurationError("No model selected")
+        }
+        guard let provider = findProvider(for: selectedModel.provider) else {
+            throw LLMError.providerNotAvailable
+        }
+        guard provider.isAvailable else {
+            throw LLMError.providerNotAvailable
+        }
+
+        let effectiveOptions = options ?? LLMOptions(
+            temperature: selectedModel.temperature ?? 0.7,
+            maxTokens: Int(selectedModel.maxTokens),
+            keepAliveMinutes: selectedModel.keepAliveMinutes.map(Int.init)
+        )
+
+        return try await provider.generateChatCompletion(
+            modelName: selectedModel.name,
+            messages: messages,
+            options: effectiveOptions
+        )
+    }
     
     private func findProvider(for providerName: String) -> (any LLMProviderType)? {
         availableProviders.first { provider in

@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import AppKit
 
 @MainActor
 final class SummaryViewModel: SummaryViewModelType {
@@ -7,6 +8,8 @@ final class SummaryViewModel: SummaryViewModelType {
     @Published private(set) var isLoadingRecording = false
     @Published private(set) var errorMessage: String?
     @Published var showingCopiedToast = false
+    @Published var folders: [FolderInfo] = []
+    @Published var selectedFolderID: String?
     
     private let recordingRepository: RecordingRepositoryType
     private let processingCoordinator: ProcessingCoordinatorType
@@ -29,6 +32,8 @@ final class SummaryViewModel: SummaryViewModelType {
             do {
                 let recording = try await recordingRepository.fetchRecording(id: recordingID)
                 currentRecording = recording
+                await loadFolders()
+                selectedFolderID = recording?.folderID
             } catch {
                 errorMessage = "Failed to load recording: \(error.localizedDescription)"
             }
@@ -44,11 +49,49 @@ final class SummaryViewModel: SummaryViewModelType {
             do {
                 let recordings = try await recordingRepository.fetchAllRecordings()
                 currentRecording = recordings.first
+                await loadFolders()
+                selectedFolderID = recordings.first?.folderID
             } catch {
                 errorMessage = "Failed to load recordings: \(error.localizedDescription)"
             }
             isLoadingRecording = false
         }
+    }
+
+    func loadFolders() async {
+        do {
+            folders = try await recordingRepository.fetchFolders()
+        } catch {
+            errorMessage = "Failed to load folders: \(error.localizedDescription)"
+        }
+    }
+
+    func selectFolder(_ folderID: String?) async {
+        guard let recordingID = currentRecording?.id else { return }
+        do {
+            try await recordingRepository.updateRecordingFolder(recordingID: recordingID, folderID: folderID)
+            selectedFolderID = folderID
+            if let updated = try await recordingRepository.fetchRecording(id: recordingID) {
+                currentRecording = updated
+            }
+        } catch {
+            errorMessage = "Failed to update folder: \(error.localizedDescription)"
+        }
+    }
+
+    func createFolder(name: String) async {
+        do {
+            let folder = try await recordingRepository.createFolder(name: name)
+            await loadFolders()
+            await selectFolder(folder.id)
+        } catch {
+            errorMessage = "Failed to create folder: \(error.localizedDescription)"
+        }
+    }
+
+    func openInFinder() {
+        guard let recording = currentRecording else { return }
+        NSWorkspace.shared.activateFileViewerSelecting([recording.recordingURL])
     }
     
     var processingStage: ProcessingStatesCard.ProcessingStage? {

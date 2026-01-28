@@ -28,6 +28,7 @@ final class MenuBarPanelManager: MenuBarPanelManagerType, ObservableObject {
     let recapViewModel: RecapViewModel
     let onboardingViewModel: OnboardingViewModel
     let summaryViewModel: SummaryViewModel
+    let askViewModel: AskViewModel
     let generalSettingsViewModel: GeneralSettingsViewModel
     let userPreferencesRepository: UserPreferencesRepositoryType
     let meetingDetectionService: any MeetingDetectionServiceType
@@ -42,6 +43,7 @@ final class MenuBarPanelManager: MenuBarPanelManagerType, ObservableObject {
         recapViewModel: RecapViewModel,
         onboardingViewModel: OnboardingViewModel,
         summaryViewModel: SummaryViewModel,
+        askViewModel: AskViewModel,
         generalSettingsViewModel: GeneralSettingsViewModel,
         userPreferencesRepository: UserPreferencesRepositoryType,
         meetingDetectionService: any MeetingDetectionServiceType
@@ -53,6 +55,7 @@ final class MenuBarPanelManager: MenuBarPanelManagerType, ObservableObject {
         self.recapViewModel = recapViewModel
         self.onboardingViewModel = onboardingViewModel
         self.summaryViewModel = summaryViewModel
+        self.askViewModel = askViewModel
         self.generalSettingsViewModel = generalSettingsViewModel
         self.userPreferencesRepository = userPreferencesRepository
         self.meetingDetectionService = meetingDetectionService

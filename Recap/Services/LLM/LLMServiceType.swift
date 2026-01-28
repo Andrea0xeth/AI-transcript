@@ -25,5 +25,9 @@ protocol LLMServiceType: AnyObject {
         text: String,
         options: LLMOptions?
     ) async throws -> String
+    func generateChat(
+        messages: [LLMMessage],
+        options: LLMOptions?
+    ) async throws -> String
     func cancelCurrentTask()
 }
