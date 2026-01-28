@@ -19,6 +19,7 @@ final class MicrophoneCapture: MicrophoneCaptureType {
     var audioFile: AVAudioFile?
     var isRecording = false
     var outputURL: URL?
+    var bufferHandler: ((AVAudioPCMBuffer) -> Void)?
     
     var inputNode: AVAudioInputNode?
     var converterNode: AVAudioMixerNode?
@@ -39,8 +40,9 @@ final class MicrophoneCapture: MicrophoneCaptureType {
         cleanup()
     }
     
-    func start(outputURL: URL, targetFormat: AudioStreamBasicDescription? = nil) throws {
+    func start(outputURL: URL?, targetFormat: AudioStreamBasicDescription? = nil, onBuffer: ((AVAudioPCMBuffer) -> Void)? = nil) throws {
         self.outputURL = outputURL
+        self.bufferHandler = onBuffer
         
         if let targetDesc = targetFormat {
             var format = targetDesc

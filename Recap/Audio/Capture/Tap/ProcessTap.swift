@@ -201,21 +201,24 @@ private extension ProcessTap {
 }
 
 final class ProcessTapRecorder: ObservableObject {
-    let fileURL: URL
+    let fileURL: URL?
     let process: AudioProcess
     private let queue = DispatchQueue(label: "ProcessTapRecorder", qos: .userInitiated)
     private let logger: Logger
+    private let bufferHandler: ((AVAudioPCMBuffer) -> Void)?
     
     @ObservationIgnored
     private weak var _tap: ProcessTap?
     
     private(set) var isRecording = false
     
-    init(fileURL: URL, tap: ProcessTap) {
+    init(fileURL: URL?, tap: ProcessTap, onBuffer: ((AVAudioPCMBuffer) -> Void)? = nil) {
         self.process = tap.process
         self.fileURL = fileURL
         self._tap = tap
-        self.logger = Logger(subsystem: AppConstants.Logging.subsystem, category: "\(String(describing: ProcessTapRecorder.self))(\(fileURL.lastPathComponent))")
+        self.bufferHandler = onBuffer
+        let fileName = fileURL?.lastPathComponent ?? "combined"
+        self.logger = Logger(subsystem: AppConstants.Logging.subsystem, category: "\(String(describing: ProcessTapRecorder.self))(\(fileName))")
     }
     
     private var tap: ProcessTap {
@@ -261,19 +264,22 @@ final class ProcessTapRecorder: ObservableObject {
             AVNumberOfChannelsKey: format.channelCount, 
         ]
         
-        let file = try AVAudioFile(forWriting: fileURL, settings: settings, commonFormat: .pcmFormatFloat32, interleaved: format.isInterleaved)
-        
-        self.currentFile = file
+        if let fileURL = fileURL {
+            let file = try AVAudioFile(forWriting: fileURL, settings: settings, commonFormat: .pcmFormatFloat32, interleaved: format.isInterleaved)
+            self.currentFile = file
+        }
         
         try tap.run(on: queue) { [weak self] inNow, inInputData, inInputTime, outOutputData, inOutputTime in
-            guard let self, let currentFile = self.currentFile else { return }
+            guard let self else { return }
             do {
                 guard let buffer = AVAudioPCMBuffer(pcmFormat: format, bufferListNoCopy: inInputData, deallocator: nil) else {
                     throw "Failed to create PCM buffer"
                 }
-                
-                try currentFile.write(from: buffer)
-
+                if let handler = self.bufferHandler {
+                    handler(buffer)
+                } else if let currentFile = self.currentFile {
+                    try currentFile.write(from: buffer)
+                }
                 self.updateAudioLevel(from: buffer)
             } catch {
                 logger.error("\(error, privacy: .public)")

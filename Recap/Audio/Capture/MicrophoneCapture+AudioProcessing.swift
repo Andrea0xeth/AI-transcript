@@ -7,22 +7,24 @@ extension MicrophoneCapture {
         guard isRecording else { return }
         
         calculateAndUpdateAudioLevel(from: buffer)
-        
+
+        let outputBuffer: AVAudioPCMBuffer
+        if let targetFormat = targetFormat,
+           buffer.format.sampleRate != targetFormat.sampleRate ||
+           buffer.format.channelCount != targetFormat.channelCount {
+            outputBuffer = convertBuffer(buffer, to: targetFormat) ?? buffer
+        } else {
+            outputBuffer = buffer
+        }
+
+        if let handler = bufferHandler {
+            handler(outputBuffer)
+            return
+        }
+
         if let audioFile = audioFile {
             do {
-                if let targetFormat = targetFormat,
-                   buffer.format.sampleRate != targetFormat.sampleRate ||
-                   buffer.format.channelCount != targetFormat.channelCount {
-                    
-                    if let convertedBuffer = convertBuffer(buffer, to: targetFormat) {
-                        try audioFile.write(from: convertedBuffer)
-                    } else {
-                        logger.warning("Failed to convert buffer, writing original")
-                        try audioFile.write(from: buffer)
-                    }
-                } else {
-                    try audioFile.write(from: buffer)
-                }
+                try audioFile.write(from: outputBuffer)
             } catch {
                 logger.error("Failed to write audio buffer: \(error)")
             }

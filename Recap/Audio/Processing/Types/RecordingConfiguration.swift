@@ -10,8 +10,8 @@ struct RecordingConfiguration {
     let baseURL: URL
     
     var expectedFiles: RecordedFiles {
-        let systemURL = captureSystemAudio ? baseURL.appendingPathExtension("system.wav") : nil
-        let micURL = enableMicrophone ? baseURL.appendingPathExtension("microphone.wav") : nil
+        let systemURL = captureSystemAudio ? baseURL.appendingPathComponent("audio.wav") : nil
+        let micURL = (captureSystemAudio ? nil : enableMicrophone ? baseURL.appendingPathComponent("microphone.wav") : nil)
         return RecordedFiles(
             microphoneURL: micURL,
             systemAudioURL: systemURL,

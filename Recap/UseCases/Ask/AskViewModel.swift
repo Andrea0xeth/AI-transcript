@@ -65,8 +65,18 @@ final class AskViewModel: ObservableObject {
         defer { isLoading = false }
 
         do {
-            let systemPrompt = "Sei un assistente utile. Rispondi alla domanda usando solo il contesto fornito. Se l'informazione non è presente, dillo chiaramente."
-            let userPrompt = "Domanda:\n\(trimmedQuestion)\n\nContesto:\n\(contextText)"
+            let systemPrompt = "Sei un assistente utile. Rispondi alla domanda usando solo il contesto fornito e la cronologia chat. Se l'informazione non è presente, dillo chiaramente."
+            let history = buildChatHistory(from: selectedRecordings)
+            let userPrompt = """
+            Domanda:
+            \(trimmedQuestion)
+
+            Contesto:
+            \(contextText)
+
+            Cronologia:
+            \(history)
+            """
             let answer = try await llmService.generateChat(
                 messages: [
                     LLMMessage(role: .system, content: systemPrompt),
@@ -76,6 +86,7 @@ final class AskViewModel: ObservableObject {
             )
             response = answer
 
+            try appendChat(answer: answer, question: trimmedQuestion, recordings: selectedRecordings)
             if saveResponseToFile {
                 try saveResponse(answer, question: trimmedQuestion, recordings: selectedRecordings)
             }
@@ -86,11 +97,29 @@ final class AskViewModel: ObservableObject {
 
     private func buildContext(from recordings: [RecordingInfo]) -> String {
         recordings.compactMap { recording in
-            let text = recording.transcriptionText?.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard let text, !text.isEmpty else { return nil }
+            let transcript = recording.transcriptionText?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let summary = recording.summaryText?.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard (transcript?.isEmpty == false) || (summary?.isEmpty == false) else { return nil }
             let title = recording.applicationName ?? "Recording"
             let date = DateFormatter.localizedString(from: recording.startDate, dateStyle: .medium, timeStyle: .short)
-            return "[\(title) • \(date)]\n\(text)"
+            var block = "[\(title) • \(date)]\n"
+            if let summary, !summary.isEmpty {
+                block += "Summary:\n\(summary)\n"
+            }
+            if let transcript, !transcript.isEmpty {
+                block += "\nTranscript:\n\(transcript)"
+            }
+            return block
+        }.joined(separator: "\n\n---\n\n")
+    }
+
+    private func buildChatHistory(from recordings: [RecordingInfo]) -> String {
+        recordings.compactMap { recording in
+            let fileURL = chatFileURL(for: recording)
+            guard let content = try? String(contentsOf: fileURL), !content.isEmpty else { return nil }
+            let title = recording.applicationName ?? "Recording"
+            let date = DateFormatter.localizedString(from: recording.startDate, dateStyle: .medium, timeStyle: .short)
+            return "[\(title) • \(date)]\n\(content)"
         }.joined(separator: "\n\n---\n\n")
     }
 
@@ -113,5 +142,37 @@ final class AskViewModel: ObservableObject {
         """
 
         try content.write(to: fileURL, atomically: true, encoding: .utf8)
+    }
+
+    private func appendChat(answer: String, question: String, recordings: [RecordingInfo]) throws {
+        guard let first = recordings.first else { return }
+        let fileURL = chatFileURL(for: first)
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        let timestamp = formatter.string(from: Date())
+        let entry = """
+
+        ### \(timestamp)
+        **Q:** \(question)
+
+        **A:** \(answer)
+
+        """
+        if FileManager.default.fileExists(atPath: fileURL.path) {
+            let handle = try FileHandle(forWritingTo: fileURL)
+            try handle.seekToEnd()
+            if let data = entry.data(using: .utf8) {
+                try handle.write(contentsOf: data)
+            }
+            try handle.close()
+        } else {
+            let header = "# Chat\n"
+            try (header + entry).write(to: fileURL, atomically: true, encoding: .utf8)
+        }
+    }
+
+    private func chatFileURL(for recording: RecordingInfo) -> URL {
+        let directory = recording.recordingURL.deletingLastPathComponent()
+        return directory.appendingPathComponent("chat.md")
     }
 }

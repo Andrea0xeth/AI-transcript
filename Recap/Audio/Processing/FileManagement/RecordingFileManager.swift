@@ -8,22 +8,32 @@ protocol RecordingFileManaging {
 
 final class RecordingFileManager: RecordingFileManaging {
     private let recordingsDirectoryName = "Recordings"
+    private let appDirectoryName = "Recap"
     
     func createRecordingURL() -> URL {
         let timestamp = Date().timeIntervalSince1970
         let filename = "recap_recording_\(Int(timestamp))"
         
-        return FileManager.default.temporaryDirectory
+        return recordingsDirectory
             .appendingPathComponent(filename)
             .appendingPathExtension("wav")
     }
     
     func createRecordingBaseURL(for recordingID: String) -> URL {
-        let timestamp = Date().timeIntervalSince1970
-        let filename = "\(recordingID)_\(Int(timestamp))"
-        
-        return recordingsDirectory
-            .appendingPathComponent(filename)
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyyMMdd_HHmmss"
+        let timestamp = formatter.string(from: Date())
+        let folderName = "\(timestamp)_\(recordingID)"
+
+        let sessionDirectory = recordingsDirectory
+            .appendingPathComponent(folderName)
+
+        try? FileManager.default.createDirectory(
+            at: sessionDirectory,
+            withIntermediateDirectories: true
+        )
+
+        return sessionDirectory
     }
     
     func ensureRecordingsDirectoryExists() throws {
@@ -34,7 +44,10 @@ final class RecordingFileManager: RecordingFileManaging {
     }
     
     private var recordingsDirectory: URL {
-        FileManager.default.temporaryDirectory
+        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? FileManager.default.temporaryDirectory
+        return base
+            .appendingPathComponent(appDirectoryName)
             .appendingPathComponent(recordingsDirectoryName)
     }
 }

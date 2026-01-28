@@ -52,12 +52,11 @@ extension MicrophoneCapture {
         guard let audioEngine = audioEngine else {
             throw AudioCaptureError.coreAudioError("AudioEngine not prepared")
         }
-        
-        guard let outputURL = outputURL else {
-            throw AudioCaptureError.coreAudioError("No output URL specified")
+        if let outputURL = outputURL {
+            try createAudioFile(at: outputURL)
+        } else if bufferHandler == nil {
+            throw AudioCaptureError.coreAudioError("No output URL or buffer handler specified")
         }
-        
-        try createAudioFile(at: outputURL)
         try installAudioTap()
         try audioEngine.start()
         

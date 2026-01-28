@@ -11,6 +11,7 @@ final class AudioRecordingCoordinator: AudioRecordingCoordinatorType {
     
     private var isRunning = false
     private var tapRecorder: ProcessTapRecorder?
+    private var combinedWriter: CombinedAudioWriter?
     
     init(
         configuration: RecordingConfiguration,
@@ -28,13 +29,41 @@ final class AudioRecordingCoordinator: AudioRecordingCoordinatorType {
         let expectedFiles = configuration.expectedFiles
         
         if let systemAudioURL = expectedFiles.systemAudioURL, let processTap = processTap {
-            let recorder = ProcessTapRecorder(fileURL: systemAudioURL, tap: processTap)
-            self.tapRecorder = recorder
-            
-            try await MainActor.run {
-                try recorder.start()
+            let targetFormat: AudioStreamBasicDescription?
+            await MainActor.run { processTap.activate() }
+            targetFormat = processTap.tapStreamDescription
+
+            if configuration.enableMicrophone,
+               let microphoneCapture = microphoneCapture,
+               var targetDesc = targetFormat,
+               let targetFormatAV = AVAudioFormat(streamDescription: &targetDesc) {
+                let writer = try CombinedAudioWriter(outputURL: systemAudioURL, targetFormat: targetFormatAV)
+                combinedWriter = writer
+
+                let recorder = ProcessTapRecorder(
+                    fileURL: nil,
+                    tap: processTap,
+                    onBuffer: { [weak self] buffer in
+                        self?.combinedWriter?.handleSystemBuffer(buffer)
+                    }
+                )
+                self.tapRecorder = recorder
+                try await MainActor.run { try recorder.start() }
+
+                try microphoneCapture.start(
+                    outputURL: nil,
+                    targetFormat: targetDesc,
+                    onBuffer: { [weak self] buffer in
+                        self?.combinedWriter?.handleMicBuffer(buffer)
+                    }
+                )
+                logger.info("Combined system+microphone recording started: \(systemAudioURL.lastPathComponent)")
+            } else {
+                let recorder = ProcessTapRecorder(fileURL: systemAudioURL, tap: processTap)
+                self.tapRecorder = recorder
+                try await MainActor.run { try recorder.start() }
+                logger.info("System audio recording started: \(systemAudioURL.lastPathComponent)")
             }
-            logger.info("System audio recording started: \(systemAudioURL.lastPathComponent)")
         }
         
         if let microphoneURL = expectedFiles.microphoneURL,
@@ -47,11 +76,11 @@ final class AudioRecordingCoordinator: AudioRecordingCoordinatorType {
                 targetFormat = nil
             }
             
-            if let desc = targetFormat {
-                try microphoneCapture.start(outputURL: microphoneURL, targetFormat: desc)
-            } else {
-                try microphoneCapture.start(outputURL: microphoneURL, targetFormat: nil)
-            }
+            try microphoneCapture.start(
+                outputURL: microphoneURL,
+                targetFormat: targetFormat,
+                onBuffer: nil
+            )
             logger.info("Microphone recording started: \(microphoneURL.lastPathComponent)")
         }
         
@@ -68,6 +97,7 @@ final class AudioRecordingCoordinator: AudioRecordingCoordinatorType {
 
         isRunning = false
         tapRecorder = nil
+        combinedWriter = nil
         
         logger.info("Recording stopped for configuration: \(self.configuration.id)")
     }

@@ -13,6 +13,10 @@ protocol MicrophoneCaptureType: ObservableObject {
     var audioLevel: Float { get }
     var recordingFormat: AVAudioFormat? { get }
 
-    func start(outputURL: URL, targetFormat: AudioStreamBasicDescription?) throws
+    func start(
+        outputURL: URL?,
+        targetFormat: AudioStreamBasicDescription?,
+        onBuffer: ((AVAudioPCMBuffer) -> Void)?
+    ) throws
     func stop()
 }

@@ -10,8 +10,12 @@ final class CoreDataManager: CoreDataManagerType {
     init(modelName: String = "RecapDataModel", inMemory: Bool = false) {
         persistentContainer = NSPersistentContainer(name: modelName)
         
-        if inMemory {
-            persistentContainer.persistentStoreDescriptions.first?.url = URL(fileURLWithPath: "/dev/null")
+        if let description = persistentContainer.persistentStoreDescriptions.first {
+            if inMemory {
+                description.url = URL(fileURLWithPath: "/dev/null")
+            }
+            description.shouldMigrateStoreAutomatically = true
+            description.shouldInferMappingModelAutomatically = true
         }
         
         persistentContainer.loadPersistentStores { _, error in

@@ -2,6 +2,7 @@ import Foundation
 import AVFoundation
 import UserNotifications
 import ScreenCaptureKit
+import CoreGraphics
 
 @MainActor
 final class PermissionsHelper: PermissionsHelperType {
@@ -14,6 +15,14 @@ final class PermissionsHelper: PermissionsHelperType {
     }
     
     func requestScreenRecordingPermission() async -> Bool {
+        if #available(macOS 11.0, *) {
+            if CGPreflightScreenCaptureAccess() {
+                return true
+            }
+            if CGRequestScreenCaptureAccess() {
+                return true
+            }
+        }
         do {
             let _ = try await SCShareableContent.current
             return true
@@ -53,6 +62,11 @@ final class PermissionsHelper: PermissionsHelperType {
     }
     
     func checkScreenCapturePermission() async -> Bool {
+        if #available(macOS 11.0, *) {
+            if CGPreflightScreenCaptureAccess() {
+                return true
+            }
+        }
         do {
             let _ = try await SCShareableContent.current
             return true

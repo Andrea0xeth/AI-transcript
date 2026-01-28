@@ -85,25 +85,25 @@ final class ProcessingCoordinator: ProcessingCoordinatorType {
         let startTime = Date()
         
         do {
-            let transcriptionText = try await performTranscriptionPhase(recording)
+            let transcriptionResult = try await performTranscriptionPhase(recording)
             guard !Task.isCancelled else { throw ProcessingError.cancelled }
             
             let autoSummarizeEnabled = await checkAutoSummarizeEnabled()
             
             if autoSummarizeEnabled {
-                let summaryText = try await performSummarizationPhase(recording, transcriptionText: transcriptionText)
+                let summaryText = try await performSummarizationPhase(recording, transcriptionText: transcriptionResult.combinedText)
                 guard !Task.isCancelled else { throw ProcessingError.cancelled }
                 
                 await completeProcessing(
                     recording: recording,
-                    transcriptionText: transcriptionText,
+                    transcriptionText: transcriptionResult.combinedText,
                     summaryText: summaryText,
                     startTime: startTime
                 )
             } else {
                 await completeProcessingWithoutSummary(
                     recording: recording,
-                    transcriptionText: transcriptionText,
+                    transcriptionText: transcriptionResult.combinedText,
                     startTime: startTime
                 )
             }
@@ -116,7 +116,7 @@ final class ProcessingCoordinator: ProcessingCoordinatorType {
         }
     }
     
-    private func performTranscriptionPhase(_ recording: RecordingInfo) async throws -> String {
+    private func performTranscriptionPhase(_ recording: RecordingInfo) async throws -> TranscriptionResult {
         try await updateRecordingState(recording.id, state: .transcribing)
         
         let transcriptionResult = try await performTranscription(recording)
@@ -125,10 +125,11 @@ final class ProcessingCoordinator: ProcessingCoordinatorType {
             id: recording.id,
             transcriptionText: transcriptionResult.combinedText
         )
+        writeTranscriptFile(for: recording, transcription: transcriptionResult)
         
         try await updateRecordingState(recording.id, state: .transcribed)
         
-        return transcriptionResult.combinedText
+        return transcriptionResult
     }
     
     private func performSummarizationPhase(_ recording: RecordingInfo, transcriptionText: String) async throws -> String {
@@ -145,8 +146,34 @@ final class ProcessingCoordinator: ProcessingCoordinatorType {
             id: recording.id,
             summaryText: summaryResult.summary
         )
+        writeSummaryFile(for: recording, summary: summaryResult.summary)
         
         return summaryResult.summary
+    }
+
+    private func writeTranscriptFile(for recording: RecordingInfo, transcription: TranscriptionResult) {
+        let directory = recording.recordingURL.deletingLastPathComponent()
+        let fileURL = directory.appendingPathComponent("transcript.md")
+        let content = buildTranscriptContent(transcription)
+        try? content.write(to: fileURL, atomically: true, encoding: .utf8)
+    }
+
+    private func writeSummaryFile(for recording: RecordingInfo, summary: String) {
+        let directory = recording.recordingURL.deletingLastPathComponent()
+        let fileURL = directory.appendingPathComponent("summary.md")
+        try? summary.write(to: fileURL, atomically: true, encoding: .utf8)
+    }
+
+    private func buildTranscriptContent(_ transcription: TranscriptionResult) -> String {
+        var content = "# Transcript\n\n"
+        content += "## System Audio\n\n"
+        content += transcription.systemAudioText
+        if let mic = transcription.microphoneText, !mic.isEmpty {
+            content += "\n\n## Microphone\n\n"
+            content += mic
+        }
+        content += "\n"
+        return content
     }
     
     private func buildSummarizationRequest(recording: RecordingInfo, transcriptionText: String) -> SummarizationRequest {

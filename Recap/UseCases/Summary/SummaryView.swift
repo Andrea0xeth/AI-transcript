@@ -174,6 +174,18 @@ struct SummaryView<ViewModel: SummaryViewModelType>: View {
                 .foregroundColor(UIConstants.Colors.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, UIConstants.Spacing.contentPadding)
+
+            if viewModel.currentRecording != nil {
+                SummaryActionButton(
+                    text: "Retry",
+                    icon: "arrow.clockwise"
+                ) {
+                    Task {
+                        await viewModel.retryProcessing()
+                    }
+                }
+                .padding(.top, 6)
+            }
         }
         .frame(maxHeight: .infinity)
     }
@@ -260,6 +272,23 @@ struct SummaryView<ViewModel: SummaryViewModelType>: View {
                         }
                         .padding(.horizontal, UIConstants.Spacing.contentPadding)
                         .padding(.vertical, UIConstants.Spacing.cardSpacing)
+                        .padding(.bottom, 80)
+                    }
+
+                    if let recording = viewModel.currentRecording,
+                       let transcript = recording.transcriptionText,
+                       !transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        VStack(alignment: .leading, spacing: UIConstants.Spacing.cardInternalSpacing) {
+                            Text("Transcript")
+                                .font(UIConstants.Typography.infoCardTitle)
+                                .foregroundColor(UIConstants.Colors.textPrimary)
+
+                            Text(transcript)
+                                .font(.system(size: 12))
+                                .foregroundColor(UIConstants.Colors.textSecondary)
+                                .textSelection(.enabled)
+                        }
+                        .padding(.horizontal, UIConstants.Spacing.contentPadding)
                         .padding(.bottom, 80)
                     }
                 }

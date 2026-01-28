@@ -31,8 +31,8 @@ extension RecapViewModel {
         logRecordedFiles(recordedFiles)
         
         do {
-            let hadMicrophone = recordedFiles.microphoneURL != nil
-            let finalRecordedFiles = try mergeSystemAndMicrophoneIfNeeded(recordedFiles)
+            let hadMicrophone = isMicrophoneEnabled
+            let finalRecordedFiles = (try? mergeSystemAndMicrophoneIfNeeded(recordedFiles)) ?? recordedFiles
             try await updateRecordingInRepository(
                 recordingID: recordingID,
                 recordedFiles: finalRecordedFiles,
@@ -59,6 +59,13 @@ extension RecapViewModel {
                 recordingURL: systemAudioURL,
                 microphoneURL: recordedFiles.microphoneURL,
                 hasMicrophoneAudio: hasMicrophoneAudio
+            )
+        } else if let micURL = recordedFiles.microphoneURL {
+            try await recordingRepository.updateRecordingURLs(
+                id: recordingID,
+                recordingURL: micURL,
+                microphoneURL: nil,
+                hasMicrophoneAudio: true
             )
         }
         

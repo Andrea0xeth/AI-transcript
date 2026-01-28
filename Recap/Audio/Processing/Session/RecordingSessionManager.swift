@@ -19,10 +19,14 @@ final class RecordingSessionManager: RecordingSessionManaging {
     func startSession(configuration: RecordingConfiguration) async throws -> AudioRecordingCoordinatorType {
         var processTap: ProcessTap?
         if configuration.captureSystemAudio {
-            let hasScreenCapture = await permissionsHelper.checkScreenCapturePermission()
+            let hasScreenCapture = await MainActor.run {
+                permissionsHelper.checkScreenRecordingPermission()
+            }
             if !hasScreenCapture {
                 _ = await permissionsHelper.requestScreenRecordingPermission()
-                let recheck = await permissionsHelper.checkScreenCapturePermission()
+                let recheck = await MainActor.run {
+                    permissionsHelper.checkScreenRecordingPermission()
+                }
                 if !recheck {
                     throw AudioCaptureError.coreAudioError(
                         "Per catturare l'audio dell'app (voci in call) serve l'autorizzazione Registrazione schermo. " +

@@ -55,41 +55,6 @@ struct RecapHomeView: View {
 
                     ScrollView(.vertical, showsIndicators: false) {
                         VStack(spacing: UIConstants.Spacing.sectionSpacing) {
-                        VStack(spacing: 10) {
-                            Text("Apri Recap a schermo intero")
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundColor(UIConstants.Colors.textPrimary)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            
-                            Text("Usa una finestra ridimensionabile e il pulsante verde per andare in full screen.")
-                                .font(.system(size: 12, weight: .regular))
-                                .foregroundColor(UIConstants.Colors.textSecondary)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            
-                            Button {
-                                viewModel.openExpandedWindow()
-                            } label: {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "arrow.up.left.and.arrow.down.right")
-                                        .font(.system(size: 14, weight: .semibold))
-                                    Text("Apri a schermo intero")
-                                        .font(.system(size: 13, weight: .semibold))
-                                }
-                                .foregroundColor(UIConstants.Colors.textPrimary)
-                                .padding(.vertical, 10)
-                                .frame(maxWidth: .infinity)
-                                .background(UIConstants.Colors.cardSecondaryBackground)
-                                .clipShape(RoundedRectangle(cornerRadius: 10))
-                            }
-                            .buttonStyle(.plain)
-                            .padding(.top, 4)
-                        }
-                        .padding(.vertical, 14)
-                        .padding(.horizontal, UIConstants.Spacing.contentPadding)
-                        .background(UIConstants.Colors.cardBackground2)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-                        .padding(.horizontal, UIConstants.Spacing.contentPadding)
-
                         ForEach(viewModel.activeWarnings, id: \.id) { warning in
                             WarningCard(warning: warning, containerWidth: geometry.size.width)
                                 .padding(.horizontal, UIConstants.Spacing.contentPadding)
