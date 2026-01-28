@@ -15,6 +15,30 @@ struct GeneralSettingsView<ViewModel: GeneralSettingsViewModelType>: View {
                     ForEach(viewModel.activeWarnings, id: \.id) { warning in
                         WarningCard(warning: warning, containerWidth: geometry.size.width)
                     }
+                    SettingsCard(title: "Microfono") {
+                        VStack(spacing: 16) {
+                            settingsRow(label: "Dispositivo") {
+                                CustomDropdown(
+                                    title: "Microphone",
+                                    options: viewModel.availableMicrophones,
+                                    selection: Binding(
+                                        get: { viewModel.selectedMicrophone },
+                                        set: { newSelection in
+                                            Task {
+                                                await viewModel.selectMicrophone(newSelection)
+                                            }
+                                        }
+                                    ),
+                                    displayName: { $0.name },
+                                    showSearch: true
+                                )
+                                .frame(width: 285)
+                            }
+                            Text("Di default usa l’input di sistema. Seleziona un device per bloccarlo.")
+                                .font(.system(size: 11, weight: .regular))
+                                .foregroundColor(UIConstants.Colors.textSecondary)
+                        }
+                    }
                     SettingsCard(title: "Model Selection") {
                         VStack(spacing: 16) {
                             settingsRow(label: "Provider") {
@@ -217,6 +241,16 @@ private final class PreviewGeneralSettingsViewModel: GeneralSettingsViewModelTyp
     var currentSelection: LLMModelInfo? {
         selectedModel
     }
+
+    @Published var availableMicrophones: [MicrophoneSelectionOption] = [
+        MicrophoneSelectionOption.systemDefault(),
+        MicrophoneSelectionOption(
+            id: "built-in",
+            name: "MacBook Pro Microphone",
+            device: MicrophoneDeviceInfo(deviceID: 1, name: "MacBook Pro Microphone", uid: "built-in")
+        )
+    ]
+    @Published var selectedMicrophone: MicrophoneSelectionOption = MicrophoneSelectionOption.systemDefault()
     
     func loadModels() async {}
     func selectModel(_ model: LLMModelInfo) async {
@@ -230,6 +264,10 @@ private final class PreviewGeneralSettingsViewModel: GeneralSettingsViewModelTyp
     }
     func toggleAutoStopRecording(_ enabled: Bool) async {
         isAutoStopRecording = enabled
+    }
+
+    func selectMicrophone(_ option: MicrophoneSelectionOption) async {
+        selectedMicrophone = option
     }
     func saveAPIKey(_ apiKey: String) async throws {}
     func dismissAPIKeyAlert() {

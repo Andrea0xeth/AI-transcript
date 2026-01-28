@@ -19,6 +19,8 @@ protocol GeneralSettingsViewModelType: ObservableObject {
     var customPromptTemplate: Binding<String> { get }
     var showAPIKeyAlert: Bool { get }
     var existingAPIKey: String? { get }
+    var availableMicrophones: [MicrophoneSelectionOption] { get }
+    var selectedMicrophone: MicrophoneSelectionOption { get }
     
     func loadModels() async
     func selectModel(_ model: LLMModelInfo) async
@@ -29,4 +31,5 @@ protocol GeneralSettingsViewModelType: ObservableObject {
     func resetToDefaultPrompt() async
     func saveAPIKey(_ apiKey: String) async throws
     func dismissAPIKeyAlert()
+    func selectMicrophone(_ option: MicrophoneSelectionOption) async
 }

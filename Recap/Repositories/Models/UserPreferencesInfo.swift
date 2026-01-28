@@ -4,6 +4,7 @@ import CoreData
 struct UserPreferencesInfo: Identifiable {
     let id: String
     let selectedLLMModelID: String?
+    let selectedMicrophoneUID: String?
     let selectedProvider: LLMProvider
     let autoSummarizeEnabled: Bool
     let autoDetectMeetings: Bool
@@ -16,6 +17,7 @@ struct UserPreferencesInfo: Identifiable {
     init(from managedObject: UserPreferences) {
         self.id = managedObject.id ?? UUID().uuidString
         self.selectedLLMModelID = managedObject.selectedLLMModelID
+        self.selectedMicrophoneUID = managedObject.selectedMicrophoneUID
         self.selectedProvider = LLMProvider(rawValue: managedObject.selectedProvider ?? LLMProvider.default.rawValue) ?? LLMProvider.default
         self.autoSummarizeEnabled = managedObject.autoSummarizeEnabled
         self.autoDetectMeetings = managedObject.autoDetectMeetings
@@ -30,6 +32,7 @@ struct UserPreferencesInfo: Identifiable {
     init(
         id: String = UUID().uuidString,
         selectedLLMModelID: String? = nil,
+        selectedMicrophoneUID: String? = nil,
         selectedProvider: LLMProvider = .default,
         autoSummarizeEnabled: Bool = true,
         autoDetectMeetings: Bool = false,
@@ -41,6 +44,7 @@ struct UserPreferencesInfo: Identifiable {
     ) {
         self.id = id
         self.selectedLLMModelID = selectedLLMModelID
+        self.selectedMicrophoneUID = selectedMicrophoneUID
         self.selectedProvider = selectedProvider
         self.autoSummarizeEnabled = autoSummarizeEnabled
         self.autoDetectMeetings = autoDetectMeetings

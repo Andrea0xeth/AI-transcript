@@ -13,6 +13,18 @@ extension AudioObjectID {
     static func readDefaultSystemOutputDevice() throws -> AudioDeviceID {
         try AudioDeviceID.system.readDefaultSystemOutputDevice()
     }
+
+    static func readDefaultInputDevice() throws -> AudioDeviceID {
+        try AudioDeviceID.system.readDefaultInputDevice()
+    }
+
+    static func setDefaultInputDevice(_ deviceID: AudioDeviceID) throws {
+        try AudioDeviceID.system.setDefaultInputDevice(deviceID)
+    }
+
+    static func readInputDevices() throws -> [AudioDeviceID] {
+        try AudioDeviceID.system.readInputDevices()
+    }
     
     static func readProcessList() throws -> [AudioObjectID] {
         try AudioObjectID.system.readProcessList()
@@ -74,9 +86,73 @@ extension AudioObjectID {
         try requireSystemObject()
         return try read(kAudioHardwarePropertyDefaultSystemOutputDevice, defaultValue: AudioDeviceID.unknown)
     }
+
+    func readDefaultInputDevice() throws -> AudioDeviceID {
+        try requireSystemObject()
+        return try read(kAudioHardwarePropertyDefaultInputDevice, defaultValue: AudioDeviceID.unknown)
+    }
+
+    func setDefaultInputDevice(_ deviceID: AudioDeviceID) throws {
+        try requireSystemObject()
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultInputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var deviceID = deviceID
+        var dataSize = UInt32(MemoryLayout<AudioDeviceID>.size)
+        let status = AudioObjectSetPropertyData(self, &address, 0, nil, dataSize, &deviceID)
+        guard status == noErr else {
+            throw AudioCaptureError.coreAudioError("Error setting default input device: \(status)")
+        }
+    }
+
+    func readInputDevices() throws -> [AudioDeviceID] {
+        try requireSystemObject()
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDevices,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var dataSize: UInt32 = 0
+        var err = AudioObjectGetPropertyDataSize(self, &address, 0, nil, &dataSize)
+        guard err == noErr else {
+            throw AudioCaptureError.coreAudioError("Error reading devices data size: \(err)")
+        }
+        var deviceIDs = [AudioDeviceID](repeating: AudioDeviceID.unknown, count: Int(dataSize) / MemoryLayout<AudioDeviceID>.size)
+        err = AudioObjectGetPropertyData(self, &address, 0, nil, &dataSize, &deviceIDs)
+        guard err == noErr else {
+            throw AudioCaptureError.coreAudioError("Error reading devices: \(err)")
+        }
+        return deviceIDs
+    }
     
     func readDeviceUID() throws -> String { 
         try readString(kAudioDevicePropertyDeviceUID) 
+    }
+
+    func readDeviceName() throws -> String {
+        try readString(kAudioObjectPropertyName)
+    }
+
+    func hasInputChannels() -> Bool {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyStreamConfiguration,
+            mScope: kAudioDevicePropertyScopeInput,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var dataSize: UInt32 = 0
+        var status = AudioObjectGetPropertyDataSize(self, &address, 0, nil, &dataSize)
+        guard status == noErr else { return false }
+
+        let rawPointer = UnsafeMutableRawPointer.allocate(byteCount: Int(dataSize), alignment: MemoryLayout<AudioBufferList>.alignment)
+        defer { rawPointer.deallocate() }
+        let bufferListPointer = rawPointer.bindMemory(to: AudioBufferList.self, capacity: 1)
+        status = AudioObjectGetPropertyData(self, &address, 0, nil, &dataSize, bufferListPointer)
+        guard status == noErr else { return false }
+
+        let bufferList = UnsafeMutableAudioBufferListPointer(bufferListPointer)
+        return bufferList.contains { $0.mNumberChannels > 0 }
     }
     
     func readAudioTapStreamBasicDescription() throws -> AudioStreamBasicDescription {

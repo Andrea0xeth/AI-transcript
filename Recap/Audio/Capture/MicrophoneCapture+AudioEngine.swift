@@ -59,6 +59,7 @@ extension MicrophoneCapture {
         }
         try installAudioTap()
         try audioEngine.start()
+        observeConfigurationChanges(for: audioEngine)
         
         isRecording = true
         logger.info("AVAudioEngine started successfully")
@@ -108,11 +109,42 @@ extension MicrophoneCapture {
     func stopAudioEngine() {
         guard let audioEngine = audioEngine, isRecording else { return }
         
+        if let observer = configurationObserver {
+            NotificationCenter.default.removeObserver(observer)
+            configurationObserver = nil
+        }
         converterNode?.removeTap(onBus: 0)
         audioEngine.stop()
         
         isRecording = false
         audioLevel = 0.0
+    }
+
+    func observeConfigurationChanges(for engine: AVAudioEngine) {
+        if let observer = configurationObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        configurationObserver = NotificationCenter.default.addObserver(
+            forName: .AVAudioEngineConfigurationChange,
+            object: engine,
+            queue: .main
+        ) { [weak self] _ in
+            self?.handleEngineConfigurationChange()
+        }
+    }
+
+    func handleEngineConfigurationChange() {
+        guard isRecording, !isRestarting else { return }
+        isRestarting = true
+        logger.info("Audio engine configuration changed; restarting microphone capture")
+        do {
+            stopAudioEngine()
+            try prepareAudioEngine()
+            try startAudioEngine()
+        } catch {
+            logger.error("Failed to restart microphone capture after configuration change: \(error)")
+        }
+        isRestarting = false
     }
     
     func closeAudioFile() {

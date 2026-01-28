@@ -192,6 +192,16 @@ private final class PreviewGeneralSettingsViewModel: GeneralSettingsViewModelTyp
     var currentSelection: LLMModelInfo? {
         selectedModel
     }
+
+    @Published var availableMicrophones: [MicrophoneSelectionOption] = [
+        MicrophoneSelectionOption.systemDefault(),
+        MicrophoneSelectionOption(
+            id: "built-in",
+            name: "MacBook Pro Microphone",
+            device: MicrophoneDeviceInfo(deviceID: 1, name: "MacBook Pro Microphone", uid: "built-in")
+        )
+    ]
+    @Published var selectedMicrophone: MicrophoneSelectionOption = MicrophoneSelectionOption.systemDefault()
     
     func loadModels() async {}
     func selectModel(_ model: LLMModelInfo) async {
@@ -205,6 +215,10 @@ private final class PreviewGeneralSettingsViewModel: GeneralSettingsViewModelTyp
     }
     func toggleAutoStopRecording(_ enabled: Bool) async {
         isAutoStopRecording = enabled
+    }
+    
+    func selectMicrophone(_ option: MicrophoneSelectionOption) async {
+        selectedMicrophone = option
     }
     
     func updateCustomPromptTemplate(_ template: String) async {}

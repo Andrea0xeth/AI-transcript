@@ -20,6 +20,8 @@ final class MicrophoneCapture: MicrophoneCaptureType {
     var isRecording = false
     var outputURL: URL?
     var bufferHandler: ((AVAudioPCMBuffer) -> Void)?
+    var configurationObserver: NSObjectProtocol?
+    var isRestarting = false
     
     var inputNode: AVAudioInputNode?
     var converterNode: AVAudioMixerNode?

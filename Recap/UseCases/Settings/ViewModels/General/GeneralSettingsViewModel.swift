@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import SwiftUI
+import AudioToolbox
 
 @MainActor
 final class GeneralSettingsViewModel: GeneralSettingsViewModelType {
@@ -29,6 +30,8 @@ final class GeneralSettingsViewModel: GeneralSettingsViewModelType {
     @Published private(set) var activeWarnings: [WarningItem] = []
     @Published private(set) var showAPIKeyAlert = false
     @Published private(set) var existingAPIKey: String?
+    @Published private(set) var availableMicrophones: [MicrophoneSelectionOption] = [MicrophoneSelectionOption.systemDefault()]
+    @Published private(set) var selectedMicrophone: MicrophoneSelectionOption = MicrophoneSelectionOption.systemDefault()
     
     var hasModels: Bool {
         !availableModels.isEmpty
@@ -78,11 +81,13 @@ final class GeneralSettingsViewModel: GeneralSettingsViewModelType {
             autoDetectMeetings = preferences.autoDetectMeetings
             isAutoStopRecording = preferences.autoStopRecording
             customPromptTemplateValue = preferences.summaryPromptTemplate ?? UserPreferencesInfo.defaultPromptTemplate
+            await loadMicrophones(preferredUID: preferences.selectedMicrophoneUID)
         } catch {
             selectedProvider = .default
             autoDetectMeetings = false
             isAutoStopRecording = false
             customPromptTemplateValue = UserPreferencesInfo.defaultPromptTemplate
+            await loadMicrophones(preferredUID: nil)
         }
         await loadModels()
     }
@@ -216,5 +221,63 @@ final class GeneralSettingsViewModel: GeneralSettingsViewModelType {
     func dismissAPIKeyAlert() {
         showAPIKeyAlert = false
         existingAPIKey = nil
+    }
+
+    func selectMicrophone(_ option: MicrophoneSelectionOption) async {
+        selectedMicrophone = option
+        let uid = option.device?.uid
+        do {
+            if let device = option.device {
+                try AudioObjectID.setDefaultInputDevice(device.deviceID)
+            }
+            try await userPreferencesRepository.updateSelectedMicrophoneUID(uid)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func loadMicrophones(preferredUID: String?) async {
+        let options = buildMicrophoneOptions()
+        availableMicrophones = options
+
+        if let preferredUID = preferredUID,
+           let preferred = options.first(where: { $0.device?.uid == preferredUID }) {
+            selectedMicrophone = preferred
+            do {
+                if let device = preferred.device {
+                    try AudioObjectID.setDefaultInputDevice(device.deviceID)
+                }
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        } else {
+            selectedMicrophone = options.first ?? MicrophoneSelectionOption.systemDefault()
+        }
+    }
+
+    private func buildMicrophoneOptions() -> [MicrophoneSelectionOption] {
+        var devices: [MicrophoneSelectionOption] = [MicrophoneSelectionOption.systemDefault()]
+        do {
+            let deviceIDs = try AudioObjectID.readInputDevices()
+            var seenUIDs = Set<String>()
+            var infos: [MicrophoneSelectionOption] = []
+            for deviceID in deviceIDs {
+                let objectID = AudioObjectID(deviceID)
+                guard objectID.hasInputChannels(),
+                      let name = try? objectID.readDeviceName(),
+                      let uid = try? objectID.readDeviceUID() else {
+                    continue
+                }
+                if seenUIDs.contains(uid) { continue }
+                seenUIDs.insert(uid)
+                let info = MicrophoneDeviceInfo(deviceID: deviceID, name: name, uid: uid)
+                infos.append(MicrophoneSelectionOption(id: uid, name: name, device: info))
+            }
+            infos.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+            devices.append(contentsOf: infos)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        return devices
     }
 }
