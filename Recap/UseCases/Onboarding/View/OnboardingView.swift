@@ -284,6 +284,7 @@ private class PreviewUserPreferencesRepository: UserPreferencesRepositoryType {
     
     func updateSelectedLLMModel(id: String?) async throws {}
     func updateSelectedProvider(_ provider: LLMProvider) async throws {}
+    func updateSelectedMicrophoneUID(_ uid: String?) async throws {}
     func updateAutoSummarize(_ enabled: Bool) async throws {}
     func updateSummaryPromptTemplate(_ template: String?) async throws {}
     func updateAutoDetectMeetings(_ enabled: Bool) async throws {}

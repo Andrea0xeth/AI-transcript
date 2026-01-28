@@ -28,11 +28,6 @@ final class RecordingFileManager: RecordingFileManaging {
         let sessionDirectory = recordingsDirectory
             .appendingPathComponent(folderName)
 
-        try? FileManager.default.createDirectory(
-            at: sessionDirectory,
-            withIntermediateDirectories: true
-        )
-
         return sessionDirectory
     }
     

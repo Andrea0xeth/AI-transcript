@@ -25,7 +25,16 @@ final class AudioRecordingCoordinator: AudioRecordingCoordinatorType {
     
     func start() async throws {
         guard !isRunning else { return }
+        let sessionDirectory = configuration.baseURL
+        var didCreateDirectory = false
         
+        do {
+            try FileManager.default.createDirectory(
+                at: sessionDirectory,
+                withIntermediateDirectories: true
+            )
+            didCreateDirectory = true
+            
         let expectedFiles = configuration.expectedFiles
         
         if let systemAudioURL = expectedFiles.systemAudioURL, let processTap = processTap {
@@ -35,9 +44,13 @@ final class AudioRecordingCoordinator: AudioRecordingCoordinatorType {
 
             if configuration.enableMicrophone,
                let microphoneCapture = microphoneCapture,
-               var targetDesc = targetFormat,
-               let targetFormatAV = AVAudioFormat(streamDescription: &targetDesc) {
-                let writer = try CombinedAudioWriter(outputURL: systemAudioURL, targetFormat: targetFormatAV)
+               let floatFormat = AVAudioFormat(
+                   commonFormat: .pcmFormatFloat32,
+                   sampleRate: 16_000,
+                   channels: 1,
+                   interleaved: false
+               ) {
+                let writer = try CombinedAudioWriter(outputURL: systemAudioURL, targetFormat: floatFormat)
                 combinedWriter = writer
 
                 let recorder = ProcessTapRecorder(
@@ -50,9 +63,10 @@ final class AudioRecordingCoordinator: AudioRecordingCoordinatorType {
                 self.tapRecorder = recorder
                 try await MainActor.run { try recorder.start() }
 
+                var floatDesc = floatFormat.streamDescription.pointee
                 try microphoneCapture.start(
                     outputURL: nil,
-                    targetFormat: targetDesc,
+                    targetFormat: floatDesc,
                     onBuffer: { [weak self] buffer in
                         self?.combinedWriter?.handleMicBuffer(buffer)
                     }
@@ -86,6 +100,12 @@ final class AudioRecordingCoordinator: AudioRecordingCoordinatorType {
         
         isRunning = true
         logger.info("Recording started with configuration: \(self.configuration.id)")
+        } catch {
+            if didCreateDirectory {
+                try? FileManager.default.removeItem(at: sessionDirectory)
+            }
+            throw error
+        }
     }
     
     func stop() {

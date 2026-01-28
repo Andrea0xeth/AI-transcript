@@ -12,12 +12,21 @@ final class CombinedAudioWriter {
     private let micGain: Float = 1.6
 
     init(outputURL: URL, targetFormat: AVAudioFormat) throws {
-        self.targetFormat = targetFormat
+        let floatFormat = AVAudioFormat(
+            commonFormat: .pcmFormatFloat32,
+            sampleRate: targetFormat.sampleRate,
+            channels: targetFormat.channelCount,
+            interleaved: false
+        )
+        guard let floatFormat else {
+            throw AudioCaptureError.coreAudioError("Invalid target format for combined writer")
+        }
+        self.targetFormat = floatFormat
         self.audioFile = try AVAudioFile(
             forWriting: outputURL,
-            settings: targetFormat.settings,
+            settings: floatFormat.settings,
             commonFormat: .pcmFormatFloat32,
-            interleaved: targetFormat.isInterleaved
+            interleaved: false
         )
     }
 

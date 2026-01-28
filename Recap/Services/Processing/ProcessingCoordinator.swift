@@ -120,6 +120,7 @@ final class ProcessingCoordinator: ProcessingCoordinatorType {
         try await updateRecordingState(recording.id, state: .transcribing)
         
         let transcriptionResult = try await performTranscription(recording)
+        try validateTranscription(transcriptionResult)
         
         try await recordingRepository.updateRecordingTranscription(
             id: recording.id,
@@ -130,6 +131,30 @@ final class ProcessingCoordinator: ProcessingCoordinatorType {
         try await updateRecordingState(recording.id, state: .transcribed)
         
         return transcriptionResult
+    }
+
+    private func validateTranscription(_ transcription: TranscriptionResult) throws {
+        let combined = transcription.combinedText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if combined.isEmpty || combined.count < 20 || isLikelyNonSpeech(combined) {
+            throw ProcessingError.transcriptionFailed("Nessun parlato rilevato nell'audio. Verifica microfono/sistema e riprova.")
+        }
+    }
+
+    private func isLikelyNonSpeech(_ text: String) -> Bool {
+        let normalized = text
+            .lowercased()
+            .replacingOccurrences(of: " ", with: "")
+            .replacingOccurrences(of: "\n", with: "")
+        let nonSpeechTokens: Set<String> = [
+            "[music]",
+            "[silence]",
+            "[noise]",
+            "[inaudible]",
+            "music",
+            "silence",
+            "noise"
+        ]
+        return nonSpeechTokens.contains(normalized)
     }
     
     private func performSummarizationPhase(_ recording: RecordingInfo, transcriptionText: String) async throws -> String {
