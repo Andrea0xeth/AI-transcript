@@ -182,6 +182,63 @@ final class RecordingRepository: RecordingRepositoryType {
             }
         }
     }
+
+    func fetchFolders() async throws -> [FolderInfo] {
+        try await withCheckedThrowingContinuation { continuation in
+            coreDataManager.performBackgroundTask { context in
+                let request = Folder.fetchRequest()
+                request.sortDescriptors = [NSSortDescriptor(key: "name", ascending: true)]
+                do {
+                    let folders = try context.fetch(request)
+                    let infos = folders.map { FolderInfo(from: $0) }
+                    continuation.resume(returning: infos)
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
+    func createFolder(name: String) async throws -> FolderInfo {
+        try await withCheckedThrowingContinuation { continuation in
+            coreDataManager.performBackgroundTask { context in
+                do {
+                    let folder = Folder(context: context)
+                    folder.id = UUID().uuidString
+                    folder.name = name
+                    folder.createdAt = Date()
+                    folder.modifiedAt = Date()
+                    try context.save()
+                    continuation.resume(returning: FolderInfo(from: folder))
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
+    func updateRecordingFolder(recordingID: String, folderID: String?) async throws {
+        try await withCheckedThrowingContinuation { continuation in
+            coreDataManager.performBackgroundTask { context in
+                do {
+                    let recording = try self.fetchRecordingEntity(id: recordingID, context: context)
+                    if let folderID = folderID {
+                        let request = Folder.fetchRequest()
+                        request.predicate = NSPredicate(format: "id == %@", folderID)
+                        request.fetchLimit = 1
+                        recording.folder = try context.fetch(request).first
+                    } else {
+                        recording.folder = nil
+                    }
+                    recording.modifiedAt = Date()
+                    try context.save()
+                    continuation.resume()
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
     
     func deleteRecording(id: String) async throws {
         try await withCheckedThrowingContinuation { continuation in
